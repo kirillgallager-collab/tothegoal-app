@@ -75,7 +75,7 @@ button.preset span { font-size: 13px; opacity: .8; }
 .unit-label { opacity: .7; min-width: 28px; }
 .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #8883; }
 .badge.ok { background: #2e9e5b33; }
-.fact.highlight { outline: 3px solid var(--tg-theme-button-color, #3390ec); }
+.fact.highlight, .field.highlight { outline: 3px solid var(--tg-theme-button-color, #3390ec); }
 .undo-bar { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; gap: 8px;
   padding: 8px 12px; margin: 0 0 12px; border-radius: 10px; background: #3390ec33; }
 .save-status { font-size: 13px; opacity: .7; margin: 8px 0 0; }
