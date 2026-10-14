@@ -12,6 +12,7 @@
   var mode = GT.mode.resolveMode(cfg, query.get('mode')); // в beta всегда real (ALLOW_MOCK:false)
   var root = document.getElementById('app');
 
+  GT.diag = GT.diagLogic.createDiag(); // журнал запросов для блока «Диагностика»
   var tg = null;          // Telegram.WebApp (real) или null
   var flow = null;
   var desc = null;        // последний descriptor потока запуска
@@ -25,7 +26,7 @@
   // ---------- env: всё, что нужно экранам ----------
   function boot() { return desc && desc.boot ? desc.boot : flow.state.boot; }
   var env = {
-    h: h, t: t, S: S, U: U, F: GT.format, D: GT.dates, cfg: cfg, mode: mode,
+    h: h, t: t, S: S, U: U, F: GT.format, D: GT.dates, cfg: cfg, mode: mode, diag: GT.diag,
     get tg() { return tg; },
     call: function (method, params, opts) { return flow.call(method, params, opts); },
     boot: boot,
@@ -161,7 +162,7 @@
       if (!getInitData()) return onDescriptor({ screen: 'authInvalid' }); // страница открыта не из Telegram
     }
     var client = GT.api.createClient({
-      apiUrl: cfg.API_URL, fetch: fetchFn, getInitData: getInitData,
+      apiUrl: cfg.API_URL, fetch: fetchFn, getInitData: getInitData, onCall: function (r) { GT.diag.record(r); },
       onSlow: function () { document.body.classList.add('slow'); }
     });
     var tz;

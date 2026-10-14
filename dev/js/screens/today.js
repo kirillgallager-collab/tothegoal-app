@@ -31,6 +31,15 @@
       if (st === 'error') return t('today.saveError');
       return t('today.saved');
     }
+    // Плашка ошибки сохранения: введённое остаётся на экране; можно повторить (сеть, занятость сервера) или обновить экран (повтором не исправить)
+    function errorBanner() {
+      var e = s().error || { code: 'network' };
+      var retryable = ctrl.isRetryable();
+      return h('div', { class: 'err-bar', role: 'alert' },
+        h('span', { text: t(retryable ? 'today.errBannerRetry' : 'today.errBannerHard', { reason: env.S.errorText(e) }) }),
+        U.button(t(retryable ? 'common.retry' : 'today.refresh'), function () { if (retryable) ctrl.retry(); else ctrl.refresh(); }));
+    }
+
     function updateStatus() { if (statusEl) { statusEl.textContent = statusText(); statusEl.className = 'save-status ' + s().status; } }
 
     // ----- шапка дня -----
@@ -167,6 +176,7 @@
       if (s().undo && !ro) {
         box.appendChild(h('div', { class: 'undo-bar' }, h('span', { text: t('today.allMarked') }), U.button(t('today.undo'), function () { ctrl.undo(); }, { secondary: true })));
       }
+      if (s().status === 'error') box.appendChild(errorBanner());
       box.appendChild(dayHeader());
       var fact = h('section', { class: 'card fact' + (params.factMode && !highlightDone ? ' highlight' : ''), id: 'fact' }, h('h3', { text: t('today.factTitle') }));
       if (!d.actions.length) fact.appendChild(h('p', { class: 'hint', text: t('today.noActions') }));
@@ -180,7 +190,6 @@
       }
       statusEl = h('p', { class: 'save-status ' + s().status, text: statusText() });
       fact.appendChild(statusEl);
-      if (s().status === 'error') fact.appendChild(U.button(t('common.retry'), function () { ctrl.retry(); }));
       box.appendChild(fact);
       box.appendChild(progressBlock());
       box.appendChild(summaryBlock());

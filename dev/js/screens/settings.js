@@ -36,8 +36,68 @@
         h('p', { class: 'hint', text: t('settings.betaVersion', { v: env.cfg.APP_VERSION || '0', env: b.env }) }),
         env.U.button(t('settings.report'), function () { env.openTg(SUPPORT_URL); }, { secondary: true })));
     }
+    box.appendChild(diagnostics(env));
     return box;
   };
+
+  // ---------- Диагностика: последние запросы и время ответа сервера (для разработчика) ----------
+  function reportText(env) {
+    var t = env.t;
+    var d = env.diag;
+    var sm = d.summary();
+    var b = env.boot();
+    var two = function (n) { return (n < 10 ? '0' : '') + n; };
+    var clock = function (ms) { var x = new Date(ms); return two(x.getHours()) + ':' + two(x.getMinutes()) + ':' + two(x.getSeconds()); };
+    var tgInfo = env.tg ? (env.tg.platform || '?') + ' ' + (env.tg.version || '?') : '—';
+    var lines = [
+      t('diag.header', { env: b.env, mode: b.mode, version: env.cfg.APP_VERSION || '0', when: new Date().toISOString() }),
+      t('diag.client', { ua: navigator.userAgent, size: window.innerWidth + '×' + window.innerHeight, tg: tgInfo })
+    ];
+    if (!sm.total) lines.push(t('diag.noCalls'));
+    if (sm.cold) lines.push(t('diag.cold', { method: sm.cold.method, ms: sm.cold.ms, result: sm.cold.code }));
+    if (sm.warm) lines.push(t('diag.warm', { n: sm.warm.n, avg: sm.warm.avg, median: sm.warm.median, min: sm.warm.min, max: sm.warm.max, p90: sm.warm.p90 }));
+    if (sm.total) lines.push(t('diag.failures', { n: sm.failures, total: sm.total }));
+    if (sm.perMethod.length) lines.push(t('diag.perMethod', { list: sm.perMethod.map(function (m) { return m.method + ' ' + m.avg + ' (' + m.n + ')'; }).join('; ') }));
+    var list = d.list();
+    if (list.length) {
+      lines.push(t('diag.last', { n: list.length }));
+      list.forEach(function (r) {
+        var att = r.attempts.length > 1 || r.code !== 'ok'
+          ? t('diag.attempts', { list: r.attempts.map(function (a) { return a.ms + ' ' + a.result; }).join(', ') }) : '';
+        lines.push(t('diag.line', { time: clock(r.startedAt), method: r.method, ms: r.ms, code: r.code, id: r.requestId, attempts: att }));
+      });
+    }
+    return lines.join('\n');
+  }
+
+  // Копирование: сначала буфер обмена, запасной путь — выделение и execCommand (в части клиентов Telegram буфер недоступен).
+  function copyText(area) {
+    var text = area.value;
+    function legacy() {
+      try { area.focus(); area.select(); area.setSelectionRange(0, text.length); return !!document.execCommand('copy'); } catch (e) { return false; }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return legacy(); });
+    }
+    return Promise.resolve(legacy());
+  }
+
+  function diagnostics(env) {
+    var h = env.h;
+    var t = env.t;
+    var area = h('textarea', { readonly: true, rows: '14', class: 'mono', 'aria-label': t('diag.title') });
+    var msg = h('p', { class: 'hint' });
+    function fill() { area.value = reportText(env); msg.textContent = ''; }
+    fill();
+    var copy = env.U.button(t('diag.copy'), function () {
+      fill();
+      copyText(area).then(function (ok) { msg.textContent = ok ? t('diag.copied') : t('diag.copyFail'); });
+    });
+    var box = h('details', { class: 'card' }, h('summary', { text: t('diag.title') }), h('p', { class: 'hint', text: t('diag.hint') }), area,
+      h('div', { class: 'actions' }, copy, env.U.button(t('diag.refresh'), fill, { secondary: true })), msg);
+    box.addEventListener('toggle', function () { if (box.open) fill(); });
+    return box;
+  }
 
   // ---------- S-51 Цель ----------
   screens.goalSettings = function (env, params) {

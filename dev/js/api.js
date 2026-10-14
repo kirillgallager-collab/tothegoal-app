@@ -51,6 +51,8 @@
     var sleep = o.sleep || defaultSleep;
     var random = o.random || Math.random;
     var uuid = o.uuid || uuidV4;
+    // Замеры для «Диагностики»: now() в миллисекундах (performance.now), onCall(запись) после каждого вызова
+    var now = o.now || (typeof performance !== 'undefined' && performance.now ? performance.now.bind(performance) : Date.now);
 
     // Одна попытка: вернуть разобранный ответ-конверт или бросить Error (сеть, таймаут, не-JSON).
     function attempt(body) {
@@ -98,15 +100,30 @@
       var slowTimer = null;
       if (o.onSlow) slowTimer = setTimeout(function () { o.onSlow(); }, slowMs);
 
+      var t0 = now();
+      var startedAt = Date.now();
+      var log = []; // по каждой попытке: сколько миллисекунд и чем кончилась (для «Диагностики»)
+      var serverTime = null;
+
       function finish(result) {
         if (slowTimer) clearTimeout(slowTimer);
+        if (o.onCall) {
+          try {
+            o.onCall({ method: method, requestId: requestId, startedAt: startedAt, ms: Math.round(now() - t0), attempts: log,
+              ok: !!result.ok, code: result.ok ? 'ok' : result.error.code, replayed: !!result.replayed, serverTime: result.serverTime || serverTime });
+          } catch (e) { /* замер не должен ломать запрос */ }
+        }
         return result;
       }
 
       function run(n) {
+        var a0 = now();
         return attempt(body).then(
           function (json) {
+            var ms = Math.round(now() - a0);
+            if (json.serverTime) serverTime = json.serverTime;
             if (json.ok) {
+              log.push({ ms: ms, result: 'ok' });
               return finish({ ok: true, data: json.data, replayed: !!json.replayed, serverTime: json.serverTime, requestId: requestId });
             }
             var e = json.error || {};
@@ -117,10 +134,12 @@
               retryAfterSec: typeof e.retryAfterSec === 'number' ? e.retryAfterSec : null,
               details: e.details || null
             };
+            log.push({ ms: ms, result: error.code });
             if (RETRY_CODES[error.code] && n < attempts) return pauseThen(n);
             return finish({ ok: false, requestId: requestId, error: error });
           },
           function (err) {
+            log.push({ ms: Math.round(now() - a0), result: 'network:' + (err && err.message ? err.message : 'error') });
             if (n < attempts) return pauseThen(n);
             return finish(networkError(requestId, err && err.message));
           }
