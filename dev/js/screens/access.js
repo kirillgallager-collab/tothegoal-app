@@ -85,7 +85,7 @@
     var list = h('div', { class: 'presets' });
     var show = env.U.button(env.t('noAccess.presets'), function () {
       show.disabled = true;
-      env.call('presets.list', {}).then(function (res) {
+      env.presets().then(function (res) {
         if (!res.ok) { show.disabled = false; return env.fail(res); }
         res.data.presets.forEach(function (p) { list.appendChild(presetCard(env, p)); });
         show.hidden = true;
@@ -155,7 +155,7 @@
 
     var presets = U.button(t('activate.presets'), function () {
       presets.disabled = true;
-      env.call('presets.list', {}).then(function (res) {
+      env.presets().then(function (res) {
         if (!res.ok) { presets.disabled = false; return env.fail(res); }
         res.data.presets.forEach(function (p) { list.appendChild(presetCard(env, p)); });
         presets.hidden = true;

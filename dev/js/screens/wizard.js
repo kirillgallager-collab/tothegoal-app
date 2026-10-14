@@ -177,7 +177,7 @@
     }
 
     step1();
-    env.call('presets.list', {}).then(function (res) {
+    env.presets().then(function (res) {
       if (!res.ok) { box.textContent = ''; box.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) })); box.appendChild(U.button(t('common.retry'), function () { env.reboot(); })); return; }
       presets = res.data.presets;
       if (!draft) step1();

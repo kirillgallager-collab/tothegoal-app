@@ -35,12 +35,24 @@
   function boot() { return desc && desc.boot ? desc.boot : flow.state.boot; }
   var READS = /\.(get|list)$|^app\.bootstrap$/;
   // Фоновая подгрузка дашборда и истории (по одному запросу, после показа «Сегодня»); любая успешная запись делает загруженное устаревшим
+  var presetsPromise = null;
   var prefetch = { version: 0, started: false, dashboard: null, history: null };
   var env = {
     h: h, t: t, S: S, U: U, F: GT.format, D: GT.dates, cfg: cfg, mode: mode, diag: GT.diag,
     get tg() { return tg; },
     call: function (method, params, opts) {
-      return flow.call(method, params, opts).then(function (res) { if (res.ok && !READS.test(method)) prefetch.version++; return res; });
+      return flow.call(method, params, opts).then(function (res) {
+        if (res.ok && !READS.test(method)) prefetch.version++;
+        if (res.ok && (method === 'goal.complete' || method === 'goal.create')) forgetGoal(); // цель сменилась: черновики прежней цели не нужны
+        return res;
+      });
+    },
+    // presets.list не меняется за сеанс: один запрос на сеанс, неудача в кэш не попадает
+    presets: function () {
+      if (!presetsPromise) {
+        presetsPromise = env.call('presets.list', {}).then(function (res) { if (!res.ok) presetsPromise = null; return res; });
+      }
+      return presetsPromise;
     },
     // Ответ, подгруженный в фоне (одноразовый): промис результата или null, если подгрузки нет или она устарела
     prefetched: function (key) {
@@ -61,6 +73,7 @@
     },
     isOwner: function () { return boot().role === 'owner'; },
     readOnly: function () { return !!(desc && desc.readOnly); },
+    period: function () { return desc && desc.period ? desc.period : null; }, // 'before' | 'after': сегодня вне периода активной цели
     todayStr: function () { var b = boot(); return GT.dates.todayIn(b.cabinet ? b.cabinet.timezone : 'Europe/Moscow', Date.now()); },
     go: function (name, params) { nav.stack.push({ name: name, params: params || {} }); showCurrent(); },
     back: function () { nav.stack.pop(); showCurrent(); },
@@ -83,6 +96,13 @@
   // строго по одному через общую очередь, а контроллер «Сегодня» переживает смену вкладок (иначе у нового экрана была бы своя очередь).
   var writeQueue = GT.todayLogic.createWriteQueue();
   var todayCtrl = null;
+  // Смена цели (goal.complete, goal.create) или ответ goal_archived / goal_not_found: черновики и кэш «Сегодня» прежней цели удаляются без отправки
+  function forgetGoal() {
+    draftStore.clear();
+    cacheStore.remove(uid);
+    lastBoot = null;
+    if (todayCtrl) todayCtrl.forget();
+  }
   var leaveHooks = [];
   env.todayController = function () {
     if (!todayCtrl) {
@@ -90,6 +110,7 @@
         call: function (m, p, o2) { return env.call(m, p, o2); }, queue: writeQueue, schedule: env.schedule, cancel: env.cancel,
         drafts: draftStore, scope: function () { var b = boot(); return b && b.cabinet ? b.cabinet.id : ''; },
         onStatus: syncTelegramButtons, onServer: saveCache,
+        onGoalGone: function () { cacheStore.remove(uid); lastBoot = null; U.toast(t('today.goalGone'), 'error'); env.reboot(); },
         myMemberId: function () { var m = env.myMember(); return m && m.id; }
       });
     }
@@ -107,7 +128,7 @@
   function syncTelegramButtons() {
     if (!tg || !todayCtrl) return;
     var u = todayCtrl.ui();
-    var show = u.show && !(desc && desc.readOnly);
+    var show = u.show && GT.router.saveButtonAllowed(desc, nav, helpOpen); // «Сохранить» только на экране «Сегодня»
     var sig = [show, u.loading, u.confirmClose].join();
     if (sig === lastButtons) return;
     lastButtons = sig;
@@ -212,6 +233,12 @@
   }
 
   function showCurrent() {
+    var r = showCurrentInner();
+    syncTelegramButtons(); // кнопка Telegram зависит от экрана: после любой смены экрана пересчитываем
+    return r;
+  }
+
+  function showCurrentInner() {
     renderChrome();
     if (helpOpen) {
       return setView(h('div', null, h('h2', { text: t('help.title') }), h('p', { text: t('help.text') }),
@@ -266,13 +293,17 @@
       var ctrl = env.todayController();
       if (d.boot && d.boot.today) ctrl.adoptBoot(d.boot.today); else ctrl.adoptBoot(null);
     }
+    if (d.screen === 'today' && d.period === 'after') startPrefetch(); // экран завершённого периода сам берёт подгруженный дашборд
     showCurrent();
     if (d.screen === 'today' && !d.cached) setTimeout(startPrefetch, 0);
     syncTelegramButtons();
   }
 
   // ---------- запуск ----------
+  var flowStarted = false;
   function startFlow() {
+    if (flowStarted) return; // onload и onerror скрипта Telegram не должны запускать открытие дважды
+    flowStarted = true;
     var fetchFn;
     var getInitData;
     var startParam;

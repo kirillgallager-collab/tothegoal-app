@@ -464,7 +464,9 @@
         needsRecoveryEmail: S.mode === 'codes' && writable && role === 'owner' && !!S.access && S.access.source === 'beta_whitelist' && !S.access.email },
       limits: { maxActions: MAX_ACTIONS, maxTasksPerGoal: MAX_TASKS },
       // «Сегодня» за серверное сегодня кабинета: клиент не делает второго запроса при открытии (api.md app.bootstrap)
-      today: access === 'none' || !goal ? null : todayView(ctx, goal, ctx.today),
+      // вне периода активной цели today = null (клиент today.get не вызывает), todayDate нужен для сравнения с датами цели
+      today: access === 'none' || !goal || ctx.today < goal.startDate || ctx.today > goal.endDate ? null : todayView(ctx, goal, ctx.today),
+      todayDate: access === 'none' ? null : ctx.today,
       apiVersion: 1, serverTime: ctx.nowIso
     };
   };

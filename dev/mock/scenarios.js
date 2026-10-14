@@ -8,6 +8,8 @@
 //   pair      как active, но в кабинете двое (?as=participant — войти вторым участником)
 //   reached   цель уже достигнута (экран «Цель достигнута»)
 //   finished  цель завершена, ждёт рефлексии; новой цели нет
+//   ended     цель активна, но её период закончился (today = null, экран завершённого периода)
+//   notstarted  цель активна, но начнётся через 5 дней (today = null, «Цель начнётся ДД.ММ»)
 //   readonly  участник отозван / кабинет неактивен: только просмотр
 //   codes-new           боевой режим (mode=codes): нет доступа, экран ввода кода; рабочий код ABCD2345EFGH (остальные коды — в methods.js)
 //   codes-transfer      боевой режим: чужой кабинет, код восстановления RECOVERYCODE переносит доступ на этот аккаунт
@@ -21,7 +23,7 @@
   var Mth = dep('./methods.js', 'mockMethods');
   var PRESETS = dep('./presets.js', 'mockPresets').PRESETS;
 
-  var BASES = ['new', 'outdated', 'noaccess', 'invited', 'active', 'pair', 'reached', 'finished', 'readonly',
+  var BASES = ['new', 'outdated', 'noaccess', 'invited', 'active', 'pair', 'reached', 'finished', 'ended', 'notstarted', 'readonly',
     'codes-new', 'codes-transfer', 'codes-beta-noemail'];
   var FLAGS = ['offline', 'flaky', 'slow', 'expired', 'wrongenv', 'busy', 'ratelimit'];
   var SCENARIOS = BASES.concat(FLAGS);
@@ -149,7 +151,7 @@
     var owner = me.role === 'owner' ? me : partner;
     var second = me.role === 'owner' ? partner : me;
     var members = [owner].concat(second ? [second] : []);
-    var offset = base === 'finished' ? 40 : 9;
+    var offset = base === 'finished' || base === 'ended' ? 40 : base === 'notstarted' ? -5 : 9;
     var r = sportGoal(ctx, owner, second ? [second] : [], offset, 30);
     var goal = r.goal;
 
@@ -160,6 +162,8 @@
       return;
     }
 
+    if (base === 'notstarted') return;
+    if (base === 'ended') { fillHistory(ctx, goal, members, K.periodDays(goal.startDate, goal.endDate), 1.5); return; }
     fillHistory(ctx, goal, members, 9, 3);
     if (base === 'reached') {
       S.progress.push({ goalId: goal.id, date: K.addDays(ctx.today, -1), memberId: owner.id, value: 80, updatedAt: ctx.nowIso });

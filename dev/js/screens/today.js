@@ -4,7 +4,51 @@
 
   var screens = root.GT.screens = root.GT.screens || {};
 
+  // Сегодня вне периода цели (app.bootstrap.today = null): ни today.get, ни ввода факта, ни «Сохранить»
+  function outOfPeriod(env, kind) {
+    var h = env.h;
+    var t = env.t;
+    var F = env.F;
+    var U = env.U;
+    var g = env.boot().activeGoal;
+    var box = h('div', { class: 'today' });
+    var period = F.period(g.startDate, g.endDate);
+    if (kind === 'before') {
+      box.appendChild(h('h2', { text: t('outOfPeriod.notStarted', { date: F.dateFull(g.startDate).slice(0, 5) }) }));
+      box.appendChild(h('p', { class: 'big', text: g.title }));
+      box.appendChild(h('p', { class: 'hint', text: t('outOfPeriod.notStartedText', { period: period }) }));
+      return Promise.resolve(box);
+    }
+    box.appendChild(h('h2', { text: t('outOfPeriod.ended') }));
+    box.appendChild(h('p', { text: t('outOfPeriod.endedText', { title: g.title, period: period }) }));
+    var sum = h('p', { class: 'big' });
+    box.appendChild(sum);
+    function complete() {
+      var ro = env.readOnly();
+      if (ro) return;
+      U.confirmDialog(t('outOfPeriod.confirm'), t('reached.finish'), true).then(function (ok) {
+        if (ok) env.call('goal.complete', { goalId: g.id }).then(function (r) { if (r.ok) env.reboot(); else env.fail(r); });
+      });
+    }
+    var actions = h('div', { class: 'stack' }, U.button(t('outOfPeriod.results'), function () { env.tab('dashboard'); }));
+    if (!env.readOnly()) {
+      actions.appendChild(U.button(t('outOfPeriod.complete'), complete, { secondary: true }));
+      if (env.isOwner()) actions.appendChild(U.button(t('outOfPeriod.createNew'), complete, { secondary: true }));
+    }
+    box.appendChild(actions);
+    // итог периода: один dashboard.get (подгруженный в фоне, если есть)
+    var pre = env.prefetched('dashboard');
+    var req = function () { return env.call('dashboard.get', { periodDays: 14 }); };
+    (pre ? pre.then(function (res) { return res && res.ok ? res : req(); }) : req()).then(function (res) {
+      if (!res.ok) return;
+      var p = res.data.progress;
+      sum.textContent = t('outOfPeriod.summary', { cur: F.num(p.currentValue), target: F.num(p.targetValue), unit: res.data.goal.unit, p: p.percent });
+    });
+    return Promise.resolve(box);
+  }
+
   screens.today = function (env, params) {
+    if (env.period()) return outOfPeriod(env, env.period());
     var h = env.h;
     var t = env.t;
     var F = env.F;

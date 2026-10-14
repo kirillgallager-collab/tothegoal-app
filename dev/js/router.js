@@ -63,6 +63,13 @@
 
     out.screen = 'today';
     out.factMode = st.type === 'fact' && !!boot.activeGoal && !out.readOnly;
+    // Сегодня вне периода цели: today = null, today.get не вызываем (api.md app.bootstrap)
+    var g = boot.activeGoal;
+    if (g && !boot.today && boot.todayDate) {
+      if (boot.todayDate < g.startDate) out.period = 'before';
+      else if (boot.todayDate > g.endDate) out.period = 'after';
+      if (out.period) out.factMode = false;
+    }
     return out;
   }
 
@@ -75,7 +82,12 @@
     return 'error';
   }
 
-  var api = { parseStartParam: parseStartParam, checkEnv: checkEnv, decideScreen: decideScreen, screenForError: screenForError };
+  // Кнопка Telegram «Сохранить» нужна только на экране «Сегодня» (вкладка «Сегодня», без подэкранов и справки).
+  function saveButtonAllowed(desc, nav, helpOpen) {
+    return !!desc && desc.screen === 'today' && !desc.readOnly && !desc.period && !helpOpen && nav.tab === 'today' && nav.stack.length === 0;
+  }
+
+  var api = { parseStartParam: parseStartParam, checkEnv: checkEnv, decideScreen: decideScreen, screenForError: screenForError, saveButtonAllowed: saveButtonAllowed };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.GT = root.GT || {}; root.GT.router = api; }
 })(globalThis);

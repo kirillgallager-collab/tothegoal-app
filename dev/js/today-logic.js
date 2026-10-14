@@ -22,6 +22,11 @@
   // Ошибки, при которых кнопка «Повторить» имеет смысл (rate_limited: клиент сам не повторяет, но человек может нажать после паузы)
   var RETRYABLE = { network: true, unavailable: true, busy: true, service_busy: true, request_in_progress: true, internal: true, rate_limited: true };
 
+  // Ответы, после которых черновик дня теряет смысл (цель уже не активна)
+  // (в каталоге ошибок api.md §5 есть только not_found, но changelog (7) называет goal_not_found: обрабатываем оба; для day.save,
+  // day.completeAll и day.finish «не найдено» может относиться только к цели или действиям этой цели)
+  var GOAL_GONE = { goal_archived: true, goal_not_found: true, not_found: true };
+
   // Очередь записи: задачи выполняются строго по одной. Один экземпляр на сессию (на кабинет).
   function createWriteQueue() {
     var tail = Promise.resolve();
@@ -62,6 +67,17 @@
       remove: function (key) {
         mem[key] = null;
         try { var s = st(); if (s) s.removeItem(pre + key); } catch (e) { /* остаётся в памяти страницы */ }
+      },
+      // Удалить все значения хранилища (смена цели: черновики прежней цели больше не нужны)
+      clear: function () {
+        Object.keys(mem).forEach(function (k) { mem[k] = null; });
+        try {
+          var s = st();
+          if (!s || typeof s.key !== 'function') return;
+          var doomed = [];
+          for (var i = 0; i < s.length; i++) { var k = s.key(i); if (k && k.indexOf(pre) === 0) doomed.push(k); }
+          doomed.forEach(function (k) { s.removeItem(k); });
+        } catch (e) { /* остаётся в памяти страницы */ }
       }
     };
   }
@@ -324,6 +340,8 @@
         }
         // после запроса появилось более новое изменение: старое тело повторять нельзя; черновик остаётся несохранённым, «Сохранить» отправит актуальное
         if (res.error.code === 'superseded') return res;
+        // цель завершена или удалена: черновик не нужен и не отправляется повторно (screens.md §3.3)
+        if (GOAL_GONE[res.error.code]) { forget(); if (o.onGoalGone) o.onGoalGone(res.error); return res; }
         failed = { method: method, params: params, requestId: res.requestId, seq: seq, onOk: onOk || null };
         s.error = res.error;
         if (handlers.onError) handlers.onError(res.error);
@@ -489,6 +507,18 @@
       settle();
     }
 
+    // Цель сменилась (goal.complete, goal.create) или сервер ответил goal_archived / goal_not_found: все черновики дней и упавший запрос
+    // забываются без повторной отправки; экран «Сегодня» снова берётся из app.bootstrap.
+    function forget() {
+      drafts.clear();
+      s.data = null;
+      s.values = {}; s.base = { values: {}, progress: null }; s.progress = null; s.markers = {}; s.day = null;
+      s.restored = null; s.error = null; s.goalReached = false;
+      failed = null; touched = {}; seen = {};
+      clearUndo();
+      settle();
+    }
+
     function isRetryable() { return !!failed && !!s.error && !!RETRYABLE[s.error.code]; }
 
     // «Повторить»: тот же запрос с тем же requestId — только если после него ничего не менялось; иначе уходит актуальный день целиком.
@@ -516,7 +546,7 @@
     return { state: s, load: load, open: open, adoptBoot: adoptBoot, setStale: setStale, refresh: refresh, plus: plus, minus: minus, setExact: setExact,
       toggleNorm: toggleNorm, isNormMarked: isNormMarked, isDone: isDone, isRowDirty: isRowDirty, idle: function () { return q.idle(); },
       save: save, press: press, completeAll: completeAll, finish: finish, undo: undo, discard: discard, retry: retry, ui: ui,
-      value: value, summary: summary, entered: entered, allEntered: allEntered, anyBelowNorm: anyBelowNorm, setProgress: setProgress,
+      forget: forget, value: value, summary: summary, entered: entered, allEntered: allEntered, anyBelowNorm: anyBelowNorm, setProgress: setProgress,
       stepProgress: stepProgress, hasDraft: dirty, isRetryable: isRetryable, serverView: serverView, bind: bind, leave: leave };
   }
 

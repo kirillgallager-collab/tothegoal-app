@@ -8,7 +8,8 @@
 
   var API_VERSION = 1;
   var PUBLIC_METHODS = { 'recovery.request': true }; // без initData (api.md §2)
-  // Повторяем автоматически только эти коды (api.md §4); rate_limited и locked ждут retryAfterSec.
+  // Повторяем автоматически только сетевую ошибку, таймаут и эти коды (api.md §4); бизнес-ошибки (goal_archived, goal_not_found,
+  // date_out_of_range, validation_failed, …) не повторяются никогда; rate_limited и locked ждут retryAfterSec.
   var RETRY_CODES = { busy: true, request_in_progress: true, service_busy: true, unavailable: true };
 
   function uuidV4() {
@@ -44,6 +45,8 @@
     var o = options || {};
     var doFetch = o.fetch;
     var timeoutMs = o.timeoutMs != null ? o.timeoutMs : 10000;
+    // goal.create тяжелее остальных методов (цель, действия, задачи одним вызовом): 20 с (api.md §4); повтор безопасен, у метода есть журнал
+    var methodTimeouts = o.methodTimeouts || (o.timeoutMs != null ? {} : { 'goal.create': 20000 });
     var attempts = o.attempts != null ? o.attempts : 3;
     var pauses = o.pauses || [1000, 3000];
     var jitterMs = o.jitterMs != null ? o.jitterMs : 500;
@@ -55,7 +58,7 @@
     var now = o.now || (typeof performance !== 'undefined' && performance.now ? performance.now.bind(performance) : Date.now);
 
     // Одна попытка: вернуть разобранный ответ-конверт или бросить Error (сеть, таймаут, не-JSON).
-    function attempt(body) {
+    function attempt(body, timeoutMs) {
       var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
       var timer;
       var timeout = new Promise(function (_, reject) {
@@ -124,7 +127,7 @@
 
       function run(n) {
         var a0 = now();
-        return attempt(body).then(
+        return attempt(body, methodTimeouts[method] || timeoutMs).then(
           function (json) {
             var ms = Math.round(now() - a0);
             if (json.serverTime) serverTime = json.serverTime;

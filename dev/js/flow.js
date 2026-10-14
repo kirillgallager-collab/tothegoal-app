@@ -27,7 +27,17 @@
     }
 
     // Запуск (и повторный запуск после согласия или «Повторить»).
+    // Пока app.bootstrap в пути, повторный run() получает тот же запрос: за открытие он уходит один раз (api.md §4).
+    var running = null;
     function run() {
+      if (running) return running;
+      var p = running = runOnce();
+      var done = function () { if (running === p) running = null; };
+      p.then(done, done);
+      return p;
+    }
+
+    function runOnce() {
       return api.call('app.bootstrap', bootParams(), bootRequestId ? { requestId: bootRequestId } : undefined).then(function (res) {
         if (!res.ok) {
           bootRequestId = res.error.code === 'network' ? res.requestId : null;
