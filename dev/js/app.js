@@ -20,15 +20,38 @@
   var helpOpen = false;
   var viewToken = 0;
   var shell = null;
+  var staleState = null;  // null | 'loading' (показан кэш, bootstrap идёт) | 'failed' (кэш показан, связи нет)
+  var lastBoot = null;    // последний свежий ответ app.bootstrap (из него и из сохранений строится кэш «Сегодня»)
+  var uid = 'anon';       // ключ кэша: Telegram ID (в mock — сценарий)
 
   var TABS = ['today', 'dashboard', 'history', 'settings'];
 
+  // Хранилища в localStorage (чтение и запись в try/catch внутри createStore): черновики дней и кэш последнего «Сегодня»
+  function getStorage() { return window.localStorage; }
+  var draftStore = GT.todayLogic.createStore(getStorage, 'gt:draft:v1:');
+  var cacheStore = GT.todayLogic.createStore(getStorage, 'gt:today:v1:');
+
   // ---------- env: всё, что нужно экранам ----------
   function boot() { return desc && desc.boot ? desc.boot : flow.state.boot; }
+  var READS = /\.(get|list)$|^app\.bootstrap$/;
+  // Фоновая подгрузка дашборда и истории (по одному запросу, после показа «Сегодня»); любая успешная запись делает загруженное устаревшим
+  var prefetch = { version: 0, started: false, dashboard: null, history: null };
   var env = {
     h: h, t: t, S: S, U: U, F: GT.format, D: GT.dates, cfg: cfg, mode: mode, diag: GT.diag,
     get tg() { return tg; },
-    call: function (method, params, opts) { return flow.call(method, params, opts); },
+    call: function (method, params, opts) {
+      return flow.call(method, params, opts).then(function (res) { if (res.ok && !READS.test(method)) prefetch.version++; return res; });
+    },
+    // Ответ, подгруженный в фоне (одноразовый): промис результата или null, если подгрузки нет или она устарела
+    prefetched: function (key) {
+      var e = prefetch[key];
+      prefetch[key] = null;
+      if (!e || e.version !== prefetch.version) return null;
+      return e.promise.then(function (res) { return prefetch.version === e.version ? res : null; });
+    },
+    staleState: function () { return staleState; },
+    hasMainButton: function () { return !!(tg && tg.MainButton); },
+    retryBoot: function () { staleState = 'loading'; if (todayCtrl) todayCtrl.setStale(true); flow.run(); },
     boot: boot,
     // Свою запись в кабинете узнаём по me.memberId из app.bootstrap, а не по роли.
     myMember: function () {
@@ -53,6 +76,86 @@
     loading: function () { onDescriptor({ screen: 'loading' }); },
     skipEmail: function () { onDescriptor(Object.assign({}, desc, { screen: 'today' })); }
   };
+
+  // ---------- ввод факта: один контроллер и одна очередь записи на сессию ----------
+  // Нажатия на «Сегодня» меняют только экран (черновик в localStorage); на сервер день уходит одним day.save по кнопке «Сохранить»
+  // (Telegram MainButton). Сервер не хранит журнал повторов для day.save, day.completeAll, day.finish, поэтому запросы записи идут
+  // строго по одному через общую очередь, а контроллер «Сегодня» переживает смену вкладок (иначе у нового экрана была бы своя очередь).
+  var writeQueue = GT.todayLogic.createWriteQueue();
+  var todayCtrl = null;
+  var leaveHooks = [];
+  env.todayController = function () {
+    if (!todayCtrl) {
+      todayCtrl = GT.todayLogic.createToday({
+        call: function (m, p, o2) { return env.call(m, p, o2); }, queue: writeQueue, schedule: env.schedule, cancel: env.cancel,
+        drafts: draftStore, scope: function () { var b = boot(); return b && b.cabinet ? b.cabinet.id : ''; },
+        onStatus: syncTelegramButtons, onServer: saveCache,
+        myMemberId: function () { var m = env.myMember(); return m && m.id; }
+      });
+    }
+    return todayCtrl;
+  };
+  env.onLeave = function (fn) { leaveHooks.push(fn); };
+  function runLeaveHooks() {
+    var hooks = leaveHooks;
+    leaveHooks = [];
+    hooks.forEach(function (fn) { try { fn(); } catch (e) { /* уход с экрана не должен ломаться */ } });
+  }
+
+  // Кнопка Telegram «Сохранить» видна только при несохранённом; пока есть несохранённое, закрытие приложения просит подтверждение.
+  var lastButtons = '';
+  function syncTelegramButtons() {
+    if (!tg || !todayCtrl) return;
+    var u = todayCtrl.ui();
+    var show = u.show && !(desc && desc.readOnly);
+    var sig = [show, u.loading, u.confirmClose].join();
+    if (sig === lastButtons) return;
+    lastButtons = sig;
+    try {
+      var mb = tg.MainButton;
+      if (mb) {
+        if (show) {
+          mb.setText(t('today.save'));
+          mb.show();
+          if (u.loading) mb.showProgress(false); else mb.hideProgress();
+        } else { mb.hideProgress(); mb.hide(); }
+      }
+      if (u.confirmClose) tg.enableClosingConfirmation(); else tg.disableClosingConfirmation();
+    } catch (e) { /* старый клиент Telegram без этих методов: остаётся кнопка на странице */ }
+  }
+
+  // Кэш последнего «Сегодня» (ключ — пользователь): при открытии показывается сразу, пока идёт app.bootstrap.
+  // Обновляется свежим bootstrap и каждым подтверждённым сохранением (значения сервера, не черновика).
+  function saveCache(view) {
+    if (!lastBoot || !lastBoot.today || view.date !== lastBoot.today.date || view.goal.id !== lastBoot.today.goal.id) return;
+    lastBoot.today = view;
+    cacheStore.put(uid, { boot: lastBoot, at: Date.now() });
+  }
+  function readCache(start) {
+    var c = cacheStore.get(uid);
+    var b = c && c.boot;
+    if (!b || !b.today || !b.cabinet || !GT.router.checkEnv(b.env, cfg.EXPECTED_ENV)) return null;
+    if (b.today.date !== GT.dates.todayIn(b.cabinet.timezone, Date.now())) return null; // кэш другого дня не показываем
+    var d = GT.router.decideScreen(b, start);
+    if (d.screen !== 'today') return null;
+    d.boot = b;
+    d.cached = true;
+    return d;
+  }
+
+  // Подгрузка дашборда и истории в фоне: по одному запросу, следующий начинается после предыдущего и после дописанной записи
+  function startPrefetch() {
+    if (prefetch.started) return;
+    prefetch.started = true;
+    var steps = [{ key: 'dashboard', method: 'dashboard.get', params: { periodDays: 14 } }, { key: 'history', method: 'history.list', params: { limit: 20 } }];
+    (function next(i) {
+      if (i >= steps.length) return;
+      var st = steps[i];
+      var entry = { version: prefetch.version, promise: writeQueue.idle().then(function () { return env.call(st.method, st.params); }) };
+      prefetch[st.key] = entry;
+      entry.promise.then(function () { next(i + 1); }, function () { next(i + 1); });
+    })(0);
+  }
 
   // ---------- оболочка ----------
   function titleText() {
@@ -91,6 +194,7 @@
   function setView(el) { if (shell) { shell.main.textContent = ''; shell.main.appendChild(el); } }
 
   function showScreen(name, params) {
+    runLeaveHooks();
     var token = ++viewToken;
     var fn = GT.screens[name];
     if (!fn) return setView(h('div', null, h('p', { text: t('fatal.generic.text') })));
@@ -129,15 +233,42 @@
   }
 
   function onDescriptor(d) {
+    document.body.classList.remove('slow');
+    if (desc && desc.cached) {
+      // Показан кэш «Сегодня», пока шёл app.bootstrap.
+      if (d.screen === 'offline') { // связи нет: остаёмся на кэше с пометкой и «Повторить»
+        staleState = 'failed';
+        if (todayCtrl) todayCtrl.setStale(true);
+        return;
+      }
+      staleState = null;
+      if (d.screen === 'today' && !!d.readOnly === !!desc.readOnly && !helpOpen) { // тот же экран: подменяем данные, не перерисовывая страницу
+        desc = d;
+        lastBoot = d.boot;
+        env.todayController().setStale(false);
+        env.todayController().adoptBoot(d.boot.today);
+        startPrefetch();
+        return;
+      }
+      if (todayCtrl) todayCtrl.setStale(false);
+    }
     desc = d;
     helpOpen = false;
-    document.body.classList.remove('slow');
+    if (d.boot) {
+      if (d.screen === 'today' && d.boot.today) { lastBoot = d.boot; cacheStore.put(uid, { boot: d.boot, at: Date.now() }); } // кэш для следующего открытия
+      else cacheStore.remove(uid);
+    }
     if (d.screen === 'today') {
       if (!nav.keepTab) { nav.tab = 'today'; }
       nav.keepTab = false;
       nav.stack = [];
+      // первый день «Сегодня» приходит в app.bootstrap: принимаем без запроса
+      var ctrl = env.todayController();
+      if (d.boot && d.boot.today) ctrl.adoptBoot(d.boot.today); else ctrl.adoptBoot(null);
     }
     showCurrent();
+    if (d.screen === 'today' && !d.cached) setTimeout(startPrefetch, 0);
+    syncTelegramButtons();
   }
 
   // ---------- запуск ----------
@@ -168,7 +299,21 @@
     var tz;
     try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { tz = undefined; }
     flow = GT.flow.createFlow({ api: client, expectedEnv: cfg.EXPECTED_ENV, startParam: startParam, tz: tz, onScreen: onDescriptor });
-    onDescriptor({ screen: 'loading' });
+    uid = mode === 'mock' ? 'mock:' + (query.get('scenario') || 'new') + ':' + (query.get('as') || 'owner')
+      : String(tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'anon');
+    var cached = readCache(GT.router.parseStartParam(startParam));
+    if (cached) { // последний «Сегодня» сразу, с пометкой «обновляем»; настоящие данные заменят его ответом bootstrap
+      staleState = 'loading';
+      lastBoot = cached.boot;
+      desc = cached;
+      var ctrl = env.todayController();
+      ctrl.adoptBoot(cached.boot.today);
+      ctrl.setStale(true);
+      showCurrent();
+      syncTelegramButtons();
+    } else {
+      onDescriptor({ screen: 'loading' });
+    }
     flow.run();
   }
 
@@ -178,7 +323,10 @@
     s.src = 'https://telegram.org/js/telegram-web-app.js';
     s.onload = s.onerror = function () {
       tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-      if (tg) { try { tg.ready(); tg.expand(); } catch (e) { /* не критично */ } }
+      if (tg) {
+        try { tg.ready(); tg.expand(); } catch (e) { /* не критично */ }
+        try { tg.MainButton.onClick(function () { if (todayCtrl) todayCtrl.press(); }); } catch (e) { /* без кнопки Telegram «Сохранить» рисуется на странице */ }
+      }
       startFlow();
     };
     document.head.appendChild(s);

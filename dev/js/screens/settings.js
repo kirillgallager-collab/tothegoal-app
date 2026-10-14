@@ -62,8 +62,9 @@
     if (list.length) {
       lines.push(t('diag.last', { n: list.length }));
       list.forEach(function (r) {
-        var att = r.attempts.length > 1 || r.code !== 'ok'
-          ? t('diag.attempts', { list: r.attempts.map(function (a) { return a.ms + ' ' + a.result; }).join(', ') }) : '';
+        var withServer = r.attempts.some(function (a) { return a.serverMs != null; });
+        var att = r.attempts.length > 1 || r.code !== 'ok' || withServer
+          ? t('diag.attempts', { list: r.attempts.map(function (a) { return a.ms + ' ' + a.result + (a.serverMs != null ? t('diag.serverMs', { n: a.serverMs }) : ''); }).join(', ') }) : '';
         lines.push(t('diag.line', { time: clock(r.startedAt), method: r.method, ms: r.ms, code: r.code, id: r.requestId, attempts: att }));
       });
     }

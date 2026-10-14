@@ -25,7 +25,9 @@
     var goalId = params.goalId;
 
     function load() {
-      return env.call('dashboard.get', goalId ? { goalId: goalId, periodDays: period } : { periodDays: period }).then(function (res) {
+      var request = function () { return env.call('dashboard.get', goalId ? { goalId: goalId, periodDays: period } : { periodDays: period }); };
+      var pre = !goalId && period === 14 ? env.prefetched('dashboard') : null; // подгружено в фоне после показа «Сегодня»
+      return (pre ? pre.then(function (res) { return res && res.ok ? res : request(); }) : request()).then(function (res) {
         box.textContent = '';
         if (!res.ok) {
           if (res.error.code === 'no_active_goal') { box.appendChild(h('h2', { text: t('noGoal.title') })); box.appendChild(h('p', { text: t('noGoal.text') })); return box; }
@@ -69,9 +71,16 @@
       }));
       box.appendChild(h('section', { class: 'card' }, h('h3', { text: t('review.slice') }), seg,
         d.slice.days.slice().reverse().map(function (day) {
-          var parts = day.perMember.map(function (m) { return (memberName(env, m.memberId) || t('review.member')) + ' ' + m.percent + ' %' + (m.missing ? ' (' + t('review.missing') + ')' : ''); }).join(' · ');
+          // Открытый день (open) — это сегодня, он ещё не закрыт: «не внесён» — не пропуск и не 0 %
+          var parts = day.perMember.map(function (m) {
+            var name = memberName(env, m.memberId) || t('review.member');
+            if (day.open) return name + ' ' + (m.missing ? t('review.openNotEntered') : t('review.openEntered', { p: m.percent }));
+            return name + ' ' + m.percent + ' %' + (m.missing ? ' (' + t('review.missing') + ')' : '');
+          }).join(' · ');
+          var emptyOpen = day.open && day.perMember.every(function (m) { return m.missing; });
           var row = h('button', { type: 'button', class: 'secondary slice-row', onclick: function () { env.go('today', { date: day.date }); } },
-            h('strong', { text: F.dayShort(day.date) }), h('span', { text: t('review.dayDelta', { d: F.delta(day.progressDelta), unit: g.unit }) }), h('span', { class: 'hint', text: parts }));
+            h('strong', { text: day.open ? t('review.todayOpen', { date: F.dayShort(day.date) }) : F.dayShort(day.date) }),
+            emptyOpen ? null : h('span', { text: t('review.dayDelta', { d: F.delta(day.progressDelta), unit: g.unit }) }), h('span', { class: 'hint', text: parts }));
           return row;
         })));
     }
@@ -94,7 +103,9 @@
     function load(cursor) {
       var p = { limit: 20 };
       if (cursor) p.cursor = cursor;
-      return env.call('history.list', p).then(function (res) {
+      var request = function () { return env.call('history.list', p); };
+      var pre = !cursor ? env.prefetched('history') : null; // первая страница подгружена в фоне
+      return (pre ? pre.then(function (res) { return res && res.ok ? res : request(); }) : request()).then(function (res) {
         more.textContent = '';
         if (!res.ok) { list.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) })); more.appendChild(env.U.button(t('common.retry'), function () { load(cursor); })); return; }
         if (!res.data.items.length && !cursor) list.appendChild(h('p', { class: 'hint', text: t('review.historyEmpty') }));

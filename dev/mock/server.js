@@ -123,14 +123,15 @@
         throw Mth.fail('forbidden');
       }
       // 6–7. сбои сценариев и идемпотентность (методы записи)
+      var journaled = def.write && def.journal !== false; // у fact.set, day.save, day.completeAll, day.finish журнала повторов нет
       if (def.write) {
-        if (!requestId) throw Mth.fail('bad_request', { fields: [{ field: 'requestId', code: 'required' }] });
+        if (!requestId && journaled) throw Mth.fail('bad_request', { fields: [{ field: 'requestId', code: 'required' }] });
         if (flags.busyLeft > 0) { flags.busyLeft--; throw Mth.fail('busy'); }
         if (sc.flag === 'ratelimit' && method !== 'consent.accept') throw Mth.fail('rate_limited', null, 30);
       }
       var logKey = (S.user ? S.user.id : 'anon') + '|' + requestId;
       var hash = stable(params);
-      if (def.write) {
+      if (journaled) {
         var prev = S.reqLog[logKey];
         if (prev) {
           if (prev.hash !== hash || prev.method !== method) throw Mth.fail('request_conflict');
@@ -139,10 +140,10 @@
       }
       // 8. выполнение
       var data = Mth.M[method](ctx, params);
-      if (def.write) {
+      if (journaled) {
         S.reqLog[logKey] = { hash: hash, method: method, data: JSON.stringify(data) };
         persist();
-      } else if (method === 'app.bootstrap') persist();
+      } else if (def.write || method === 'app.bootstrap') persist();
       return ok(requestId, data, false);
     }
 

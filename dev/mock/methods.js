@@ -363,6 +363,43 @@
     return acts.map(function (a) { return { actionId: a.id, date: date, value: factVal(S, a.id, date) }; });
   }
 
+  // Черновик дня (facts и progress) применяется атомарно, как day.save: сначала все проверки, потом запись.
+  // Возвращает { acts, progressOut } (progressOut — только если progress передан).
+  function applyDraft(ctx, goal, date, p, factsRequired) {
+    var S = ctx.S;
+    var v = validator(p);
+    if (factsRequired ? !Array.isArray(p.facts) : (p.facts !== undefined && !Array.isArray(p.facts))) v.bad('facts', 'required');
+    v.done();
+    var seen = {};
+    var rows = (p.facts || []).map(function (f, i) {
+      var key = 'facts[' + i + ']';
+      if (!f || typeof f.actionId !== 'string') { v.bad(key + '.actionId', 'required'); return null; }
+      if (f.value !== null && !(typeof f.value === 'number' && isFinite(f.value) && f.value >= 0 && f.value <= 1e12)) { v.bad(key + '.value', 'out_of_range'); return null; }
+      if (seen[f.actionId]) { v.bad(key + '.actionId', 'bad_format'); return null; }
+      seen[f.actionId] = true;
+      return f;
+    });
+    if (p.progress != null && !(typeof p.progress.value === 'number' && isFinite(p.progress.value) && Math.abs(p.progress.value) <= 1e12)) v.bad('progress.value', 'bad_format');
+    v.done();
+    var acts = rows.map(function (f) { return ownAction(ctx, f.actionId); }); // атомарно: сначала все проверки
+    acts.forEach(function (a) { if (a.goalId !== goal.id || a.status !== 'active') throw fail('not_found'); });
+    rows.forEach(function (f) { setFact(S, f.actionId, date, f.value); });
+    var progressOut;
+    if (p.progress) {
+      var list = S.progress;
+      var memberKey = goal.inputMode === 'delta' ? ctx.me.id : null;
+      var e = list.find(function (x) { return x.goalId === goal.id && x.date === date && x.memberId === memberKey; });
+      if (e) { e.value = p.progress.value; e.updatedAt = ctx.nowIso; } else list.push({ goalId: goal.id, date: date, memberId: memberKey, value: p.progress.value, updatedAt: ctx.nowIso });
+      var cur = currentValue(S, goal, date);
+      var prev = K.valueAt(goal, entriesOf(S, goal.id), K.addDays(date, -1));
+      progressOut = { value: p.progress.value, currentValue: K.round2(cur), deltaForDay: K.round2(goal.inputMode === 'delta'
+        ? entriesOf(S, goal.id).filter(function (x) { return x.date === date; }).reduce(function (s, x) { return s + x.value; }, 0) : cur - prev) };
+      noteReached(ctx, goal);
+    }
+    return { acts: acts, progressOut: progressOut };
+  }
+
+  // day.completeAll и day.finish: необязательные facts и progress (несохранённый черновик) применяются первыми, как в day.save
   function dayAction(ctx, p, mode) {
     var v = validator(p);
     var goalId = v.str('goalId');
@@ -370,6 +407,7 @@
     v.done();
     var goal = goalById(ctx.S, goalId);
     checkFactDate(ctx, goal, date);
+    var draft = p.facts !== undefined || p.progress != null ? applyDraft(ctx, goal, date, p, false) : null;
     var acts = actionsOf(ctx.S, goal.id, ctx.me.id, true);
     var norms = dayNorms(ctx, goal, date);
     var changed = [];
@@ -380,7 +418,9 @@
         if (cur === null || next > cur) { setFact(ctx.S, a.id, date, next); changed.push(a.id); }
       } else if (cur === null) { setFact(ctx.S, a.id, date, 0); changed.push(a.id); }
     });
-    return { facts: factRows(ctx.S, acts, date), changed: changed, day: dayResult(ctx, goal, ctx.me.id, date), goalReached: isReached(ctx, goal) };
+    var out = { facts: factRows(ctx.S, acts, date), changed: changed, day: dayResult(ctx, goal, ctx.me.id, date), goalReached: isReached(ctx, goal) };
+    if (draft && draft.progressOut) out.progress = draft.progressOut;
+    return out;
   }
 
   // ---------- методы ----------
@@ -423,6 +463,8 @@
         // только режим codes: владелец бесплатного бета-доступа без подтверждённого email (api.md app.bootstrap)
         needsRecoveryEmail: S.mode === 'codes' && writable && role === 'owner' && !!S.access && S.access.source === 'beta_whitelist' && !S.access.email },
       limits: { maxActions: MAX_ACTIONS, maxTasksPerGoal: MAX_TASKS },
+      // «Сегодня» за серверное сегодня кабинета: клиент не делает второго запроса при открытии (api.md app.bootstrap)
+      today: access === 'none' || !goal ? null : todayView(ctx, goal, ctx.today),
       apiVersion: 1, serverTime: ctx.nowIso
     };
   };
@@ -988,42 +1030,16 @@
   };
 
   M['day.save'] = function (ctx, p) {
-    var S = ctx.S;
     var v = validator(p);
     var goalId = v.str('goalId');
     var date = v.date('date');
     if (!Array.isArray(p.facts)) v.bad('facts', 'required');
     v.done();
-    var goal = goalById(S, goalId);
+    var goal = goalById(ctx.S, goalId);
     checkFactDate(ctx, goal, date);
-    var seen = {};
-    var rows = p.facts.map(function (f, i) {
-      var key = 'facts[' + i + ']';
-      if (!f || typeof f.actionId !== 'string') { v.bad(key + '.actionId', 'required'); return null; }
-      if (f.value !== null && !(typeof f.value === 'number' && isFinite(f.value) && f.value >= 0 && f.value <= 1e12)) { v.bad(key + '.value', 'out_of_range'); return null; }
-      if (seen[f.actionId]) { v.bad(key + '.actionId', 'bad_format'); return null; }
-      seen[f.actionId] = true;
-      return f;
-    });
-    if (p.progress != null && !(typeof p.progress.value === 'number' && isFinite(p.progress.value) && Math.abs(p.progress.value) <= 1e12)) v.bad('progress.value', 'bad_format');
-    v.done();
-    var acts = rows.map(function (f) { return ownAction(ctx, f.actionId); }); // атомарно: сначала все проверки
-    acts.forEach(function (a) { if (a.goalId !== goal.id || a.status !== 'active') throw fail('not_found'); });
-    rows.forEach(function (f) { setFact(S, f.actionId, date, f.value); });
-    var progressOut;
-    if (p.progress) {
-      var list = S.progress;
-      var memberKey = goal.inputMode === 'delta' ? ctx.me.id : null;
-      var e = list.find(function (x) { return x.goalId === goal.id && x.date === date && x.memberId === memberKey; });
-      if (e) { e.value = p.progress.value; e.updatedAt = ctx.nowIso; } else list.push({ goalId: goal.id, date: date, memberId: memberKey, value: p.progress.value, updatedAt: ctx.nowIso });
-      var cur = currentValue(S, goal, date);
-      var prev = K.valueAt(goal, entriesOf(S, goal.id), K.addDays(date, -1));
-      progressOut = { value: p.progress.value, currentValue: K.round2(cur), deltaForDay: K.round2(goal.inputMode === 'delta'
-        ? entriesOf(S, goal.id).filter(function (x) { return x.date === date; }).reduce(function (s, x) { return s + x.value; }, 0) : cur - prev) };
-      noteReached(ctx, goal);
-    }
-    var out = { facts: factRows(S, acts, date), day: dayResult(ctx, goal, ctx.me.id, date), goalReached: isReached(ctx, goal) };
-    if (progressOut) out.progress = progressOut;
+    var draft = applyDraft(ctx, goal, date, p, true);
+    var out = { facts: factRows(ctx.S, draft.acts, date), day: dayResult(ctx, goal, ctx.me.id, date), goalReached: isReached(ctx, goal) };
+    if (draft.progressOut) out.progress = draft.progressOut;
     return out;
   };
 
@@ -1079,7 +1095,8 @@
     for (var i = n - 1; i >= 0; i--) {
       var d = K.addDays(upTo, -i);
       var delta = currentValue(S, g, d) - (d > g.startDate ? currentValue(S, g, K.addDays(d, -1)) : g.startValue);
-      days.push({ date: d, progressDelta: K.round2(delta), perMember: activeMembers(S).map(function (m) {
+      // open: текущий день активной цели ещё не закрыт, данные могут измениться; «не внесён» у него не пропуск
+      days.push({ date: d, open: g.status !== 'completed' && d === ctx.today, progressDelta: K.round2(delta), perMember: activeMembers(S).map(function (m) {
         var pf = planFactOf(ctx, g, m.id, d);
         return { memberId: m.id, percent: pf.percent, percentRaw: pf.percentRaw, missing: !dayEntered(S, g, m.id, d) };
       }) });
@@ -1195,7 +1212,10 @@
     'cabinet.delete': { roles: OWN, write: true },
     'action.create': { roles: WORK, write: true }, 'action.update': { roles: WORK, write: true }, 'action.archive': { roles: WORK, write: true },
     'task.list': { roles: ALL }, 'task.create': { roles: WORK, write: true }, 'task.update': { roles: WORK, write: true }, 'task.setDone': { roles: WORK, write: true }, 'task.archive': { roles: WORK, write: true },
-    'fact.set': { roles: WORK, write: true }, 'day.save': { roles: WORK, write: true }, 'day.completeAll': { roles: WORK, write: true }, 'day.finish': { roles: WORK, write: true },
+    // Ввод факта: сервер НЕ хранит журнал повторов (journal: false) — повтор выполняется заново, поэтому клиент не должен
+    // повторять устаревшее тело после более нового нажатия (today-logic.js: очередь записи, canRetry).
+    'fact.set': { roles: WORK, write: true, journal: false }, 'day.save': { roles: WORK, write: true, journal: false },
+    'day.completeAll': { roles: WORK, write: true, journal: false }, 'day.finish': { roles: WORK, write: true, journal: false },
     'reflection.save': { roles: WORK, write: true }, 'reflection.dismiss': { roles: WORK, write: true },
     'member.leave': { roles: ['participant', 'readonly'], write: true }
   };

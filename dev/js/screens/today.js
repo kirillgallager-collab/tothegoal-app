@@ -18,10 +18,11 @@
     var goalBrief = env.boot().activeGoal;
     var today = env.todayStr();
 
-    var ctrl = root.GT.todayLogic.createToday({
-      call: env.call, schedule: env.schedule, cancel: env.cancel, myMemberId: me && me.id, onChange: draw,
-      onGoalReached: function () { env.reboot(); }, onError: function () { /* статус виден на экране */ }
-    });
+    // Контроллер один на сессию (вместе с очередью записи): при смене вкладки он отвязывается, накопленное уходит в фоне,
+    // а возвращаясь сюда, экран подключается к тому же контроллеру и видит и значения, и плашку ошибки, если что-то не сохранилось.
+    var ctrl = env.todayController();
+    ctrl.bind({ onChange: draw, onGoalReached: function () { env.reboot(); }, onError: function () { /* статус виден на экране */ } });
+    env.onLeave(function () { ctrl.leave(); });
 
     function s() { return ctrl.state; }
 
@@ -29,7 +30,8 @@
       var st = s().status;
       if (st === 'saving') return t('today.saving');
       if (st === 'error') return t('today.saveError');
-      return t('today.saved');
+      if (st === 'dirty') return t('today.dirty');
+      return st === 'saved' ? t('today.saved') : '';
     }
     // Плашка ошибки сохранения: введённое остаётся на экране; можно повторить (сеть, занятость сервера) или обновить экран (повтором не исправить)
     function errorBanner() {
@@ -106,7 +108,7 @@
       var state = done ? t('today.done') : t('today.notDone');
       return h('div', { class: 'action' + (done ? ' done' : '') },
         h('div', { class: 'row between' }, h('strong', { text: a.title }), normBtn),
-        h('p', { class: 'hint', text: normLine + ' · ' + state + (a.streak ? ' · ' + t('today.streakShort', { n: a.streak }) : '') }),
+        h('p', { class: 'hint', text: normLine + ' · ' + state + (a.streak ? ' · ' + t('today.streakShort', { n: a.streak }) : '') + (ctrl.isRowDirty(a.id) ? ' · ' + t('today.rowDirty') : '') }),
         h('div', { class: 'row stepper' },
           ro ? null : U.button('−', function () { ctrl.minus(a.id); }, { aria: t('today.less', { title: a.title }) }),
           editing === a.id ? editInput(a) : valueButton(a),
@@ -173,6 +175,13 @@
       var d = s().data;
       var scroll = window.scrollY;
       box.textContent = '';
+      var stale = env.staleState();
+      if (stale === 'loading') box.appendChild(h('p', { class: 'notice', text: t('today.refreshing') }));
+      if (stale === 'failed') box.appendChild(h('div', { class: 'notice' }, h('span', { text: t('today.cachedOffline') }), U.button(t('common.retry'), function () { env.retryBoot(); }, { secondary: true })));
+      if (s().restored && !ro) {
+        box.appendChild(h('div', { class: 'notice restored' }, h('p', { text: t('today.restored', { date: F.dayLong(s().restored) }) }),
+          h('div', { class: 'actions' }, U.button(t('today.save'), function () { ctrl.save(); }, { disabled: !!stale }), U.button(t('today.discard'), function () { ctrl.discard(); }, { secondary: true }))));
+      }
       if (s().undo && !ro) {
         box.appendChild(h('div', { class: 'undo-bar' }, h('span', { text: t('today.allMarked') }), U.button(t('today.undo'), function () { ctrl.undo(); }, { secondary: true })));
       }
@@ -184,12 +193,17 @@
       var sum = ctrl.summary();
       if (!ro && d.actions.length) {
         var row = h('div', { class: 'actions' });
-        if (ctrl.anyBelowNorm()) row.appendChild(U.button(t('today.completeAll'), function () { ctrl.completeAll(); }));
-        if (!sum.dayEntered) row.appendChild(U.button(t('today.finish'), function () { ctrl.finish(); }, { secondary: true }));
+        if (ctrl.anyBelowNorm()) row.appendChild(U.button(t('today.completeAll'), function () { ctrl.completeAll(); }, { disabled: !!stale }));
+        if (!sum.dayEntered) row.appendChild(U.button(t('today.finish'), function () { ctrl.finish(); }, { secondary: true, disabled: !!stale }));
         fact.appendChild(row);
       }
       statusEl = h('p', { class: 'save-status ' + s().status, text: statusText() });
       fact.appendChild(statusEl);
+      // Вне Telegram (кнопки MainButton нет) «Сохранить» рисуется на странице
+      var ui = ctrl.ui();
+      if (!ro && ui.show && !env.hasMainButton()) {
+        fact.appendChild(U.button(t('today.save'), function () { ctrl.press(); }, { disabled: ui.loading }));
+      }
       box.appendChild(fact);
       box.appendChild(progressBlock());
       box.appendChild(summaryBlock());
@@ -199,7 +213,8 @@
       if (params.factMode && !highlightDone) { highlightDone = true; fact.scrollIntoView({ block: 'start' }); } else window.scrollTo(0, scroll);
     }
 
-    return ctrl.load(params.date).then(function (res) {
+    // Первый день приходит в app.bootstrap (env выставил его в контроллер), отдельного запроса при открытии нет
+    return ctrl.open(params.date, today).then(function (res) {
       if (!res.ok) {
         if (res.error.code === 'no_active_goal') return h('div', null, h('h2', { text: t('noGoal.title') }), h('p', { text: t('noGoal.text') }));
         return h('div', null, h('p', { class: 'error', text: env.S.errorText(res.error) }), U.button(t('common.retry'), function () { env.tab('today'); }));

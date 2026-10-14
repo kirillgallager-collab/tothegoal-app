@@ -116,14 +116,21 @@
         return result;
       }
 
+        function entry(ms, result, serverMs) {
+        var e = { ms: ms, result: result };
+        if (serverMs != null) e.serverMs = serverMs;
+        return e;
+      }
+
       function run(n) {
         var a0 = now();
         return attempt(body).then(
           function (json) {
             var ms = Math.round(now() - a0);
             if (json.serverTime) serverTime = json.serverTime;
+            var serverMs = typeof json.serverMs === 'number' ? json.serverMs : null; // сколько сервер обрабатывал запрос (без сети и холодного старта)
             if (json.ok) {
-              log.push({ ms: ms, result: 'ok' });
+              log.push(entry(ms, 'ok', serverMs));
               return finish({ ok: true, data: json.data, replayed: !!json.replayed, serverTime: json.serverTime, requestId: requestId });
             }
             var e = json.error || {};
@@ -134,7 +141,7 @@
               retryAfterSec: typeof e.retryAfterSec === 'number' ? e.retryAfterSec : null,
               details: e.details || null
             };
-            log.push({ ms: ms, result: error.code });
+            log.push(entry(ms, error.code, serverMs));
             if (RETRY_CODES[error.code] && n < attempts) return pauseThen(n);
             return finish({ ok: false, requestId: requestId, error: error });
           },
@@ -146,9 +153,21 @@
         );
       }
 
+      // opts.canRetry() — вызывающий может запретить повторы: если после запроса появилось более новое изменение,
+      // повторять старое тело нельзя (сервер не хранит журнал повторов для записи факта), вызов заканчивается кодом 'superseded'
+      function superseded() {
+        log.push({ ms: 0, result: 'superseded' });
+        return finish({ ok: false, requestId: requestId, error: { code: 'superseded', message: 'newer change', retryable: false, retryAfterSec: null, details: null } });
+      }
+      var canRetry = opts && opts.canRetry;
+
       function pauseThen(n) {
+        if (canRetry && !canRetry()) return superseded();
         var base = pauses[Math.min(n - 1, pauses.length - 1)];
-        return sleep(base + Math.floor(random() * jitterMs)).then(function () { return run(n + 1); });
+        return sleep(base + Math.floor(random() * jitterMs)).then(function () {
+          if (canRetry && !canRetry()) return superseded(); // за время паузы могли нажать ещё раз
+          return run(n + 1);
+        });
       }
 
       return run(1);
