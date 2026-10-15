@@ -16,8 +16,15 @@
   Шрифты локальные (fonts/*.woff2, font-display: swap), внешних запросов нет.
   Метка «новое» — то, чего ещё нет в docs/screens.md (в приложение метки не переносить).
 
-  Каркас v6: закреплённое меню-пилюля (4 вкладки из docs/screens.md §1), на экранах-сценариях меню скрыто, «Назад» — Telegram.WebApp.BackButton.
-  Плашки 20px, кнопки и поля 14px, меню — пилюля. Тени только у всплывающего «Сохранено». Просрочка — единственный тёплый цвет (--warn).
+  Каркас v7: закреплённое меню-пилюля (4 вкладки из docs/screens.md §1), на экранах-сценариях меню скрыто, «Назад» — Telegram.WebApp.BackButton.
+  Разделов-плашек нет: раздел лежит на фоне страницы — заголовок мелкими заглавными, под ним строки с тонкими разделителями, между разделами 32px.
+  Кнопки и поля 14px, меню — пилюля. Тени только у всплывающего «Сохранено». Просрочка — единственный тёплый цвет (--warn).
+
+  «Сохранить» — родная MainButton Telegram (docs/screens.md), на странице её нет. В макете она нарисована в имитации нижней панели Telegram
+  (цвет панели = setBottomBarColor), под меню; при открытой клавиатуре меню скрыто, кнопка над клавиатурой. Цвета кнопки для обеих тем:
+    Светлая:  Telegram.WebApp.MainButton.setParams({ text: 'Сохранить', color: '#0B4A33', text_color: '#F7F3EC' });
+    Тёмная:   Telegram.WebApp.MainButton.setParams({ text: 'Сохранить', color: '#E0D3B8', text_color: '#121614' });
+  MainButton.show() — только на «Сегодня» при несохранённом; hide() — после сохранения и на других экранах.
 -->
 <style>
 /* ===== Шрифт: Montserrat 200–400, два файла (кириллица 23,8 КБ + латиница 38,0 КБ = 61,8 КБ) ===== */
@@ -62,7 +69,10 @@ body{font:400 15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-ser
   max-width:430px;margin:0 auto;min-height:100vh;position:relative;padding-bottom:calc(var(--pb) + env(safe-area-inset-bottom,0px));color:var(--text);background:var(--bg);font-family:var(--f-body);font-weight:400;font-feature-settings:"lnum";overflow-x:clip}
 /* меню 64 + отступ 12 + воздух 24; при несохранённом ещё кнопка 48 + зазор 8 */
 .phone[data-nav="on"]{--pb:calc(var(--nav-h) + 36px)}
-.phone[data-nav="on"].dirty{--pb:calc(var(--nav-h) + 92px)}
+/* + нижняя панель Telegram с MainButton (8 + 48 + 8) */
+.phone[data-nav="on"].dirty{--pb:calc(var(--nav-h) + 76px)}
+/* клавиатура 260 + панель с MainButton 64 + воздух */
+.phone.kbd{--pb:360px}
 
 /* имитация шапки Telegram: слева «Закрыть» или «‹ Назад» */
 .tghead{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;min-height:44px;padding:0 16px;background:var(--tg-head);font-size:15px;border-bottom:1px solid var(--line)}
@@ -72,21 +82,21 @@ body{font:400 15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-ser
 .tgb.close{color:var(--muted);cursor:default}
 
 .wrap{padding:8px 16px 0}
-.sec{margin-top:30px}
+.sec{margin-top:32px}
 .top{margin-top:16px;padding:0 4px}
 .title{font:400 22px/1.25 var(--f-disp);margin:16px 4px 0;overflow-wrap:anywhere}
 h2{font:400 18px/1.3 var(--f-disp);overflow-wrap:anywhere}
-.cap{font:400 11px/1.3 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 4px 10px}
+.cap{font:400 11px/1.3 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
 .top .cap{margin:0}
 .muted{color:var(--muted)}
 .small{font-size:13px;line-height:1.5}
 .sub{font-size:12px;line-height:1.4;color:var(--muted);margin-top:2px}
 .lbl{display:block;font-size:12px;line-height:1.3;color:var(--muted);margin-bottom:6px}
 
-/* плашка: один раздел = одна плашка, внутри строки с тонкими разделителями */
-.card{background:var(--card);border-radius:20px;padding:4px 20px}
-.card.box{padding:20px}
-.rows>*+*{border-top:1px solid var(--line)}
+/* раздел без плашки: лежит на фоне страницы; строки отделены тонкой линией (1px) сверху и снизу списка */
+.card,.card.box{padding:0}
+.rows>*{border-top:1px solid var(--line)}
+.rows>*:last-child{border-bottom:1px solid var(--line)}
 
 .num{font-family:var(--f-disp);font-weight:var(--hero-w);color:var(--accent);font-variant-numeric:lining-nums}
 .hero{font-size:var(--hero);line-height:1.1;letter-spacing:-.01em;margin-top:12px}
@@ -115,7 +125,13 @@ h2{font:400 18px/1.3 var(--f-disp);overflow-wrap:anywhere}
 .btn.sec{min-height:44px;padding:10px 16px;background:transparent;color:var(--text);border:1px solid var(--line-btn)}
 .btn[disabled]{opacity:.35;cursor:default}
 .stack{display:grid;gap:8px;margin-top:12px}
-.card>.btn{margin:8px 0 16px;width:100%}
+/* компактная вторичная кнопка: по ширине текста, 36px */
+.btn.compact{display:inline-flex;width:auto;min-height:36px;height:36px;padding:0 16px;font-size:13px;border-radius:14px}
+.btn.fin{min-height:44px;height:44px;padding:0 16px}
+.mt{margin-top:12px}
+/* кнопка-ссылка: настоящая button, вид текстовой ссылки, зона нажатия 44px */
+.linkbtn{display:inline-flex;align-items:center;min-height:44px;padding:0;background:none;border:0;color:var(--accent);font:400 15px/1.3 var(--f-body);text-decoration:underline;text-underline-offset:4px;cursor:pointer;touch-action:manipulation}
+.av{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid var(--line-btn);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted)}
 .undo{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;padding:6px 6px 6px 16px;border-radius:14px;background:var(--soft)}
 
 .task{display:flex;gap:16px;align-items:flex-start;padding:14px 0}
@@ -126,15 +142,23 @@ h2{font:400 18px/1.3 var(--f-disp);overflow-wrap:anywhere}
 .task>div{min-width:0}
 
 /* закреплённый низ: «Сохранить» над меню-пилюлей; всплывающее «Сохранено» над ними */
-.dock{position:fixed;left:0;right:0;bottom:0;z-index:8;max-width:430px;margin:0 auto;padding:0 12px calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:8;max-width:430px;margin:0 auto;display:flex;flex-direction:column;pointer-events:none}
 .dock>*{pointer-events:auto}
-.nav{display:flex;gap:4px;height:var(--nav-h);padding:6px;border-radius:99px;background:var(--card);border:1px solid var(--line)}
-.phone:not([data-nav="on"]) .nav{display:none}
+.nav{display:flex;gap:4px;height:var(--nav-h);padding:6px;border-radius:99px;background:var(--card);border:1px solid var(--line);margin:0 12px calc(12px + env(safe-area-inset-bottom,0px))}
+.phone.dirty .nav{margin-bottom:8px}
+.phone:not([data-nav="on"]) .nav,.phone.kbd .nav{display:none}
+.toast{margin-bottom:8px}
+/* имитация нижней панели Telegram с родной MainButton «Сохранить» */
+.tgbar{padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:1px solid var(--line)}
+.phone.kbd .tgbar{padding-bottom:8px}
+.mainbtn{display:flex;align-items:center;justify-content:center;width:100%;height:48px;border:0;border-radius:12px;background:var(--btn-bg);color:var(--btn-ink);font:400 15px/1 var(--f-body);letter-spacing:.04em;cursor:pointer}
+/* цифровая клавиатура — серая область */
+.kbdbox{height:260px;display:flex;align-items:center;justify-content:center;background:#D2D4DA;color:#6b6e76;font-size:13px}
+[data-theme="dark"] .kbdbox{background:#2B2D31;color:#8b8e96}
 .tab{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:0 2px;border:0;border-radius:99px;background:transparent;color:var(--muted);font:400 11px/1 var(--f-body);cursor:pointer;touch-action:manipulation}
 .tab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .tab[aria-current="page"]{background:var(--btn-bg);color:var(--btn-ink)}
 .toast{align-self:center;background:var(--btn-bg);color:var(--btn-ink);padding:12px 20px;border-radius:99px;box-shadow:var(--pop-shadow)}
-
 .hrow{padding:16px 0}
 .hist-top{display:flex;justify-content:space-between;align-items:baseline;gap:16px}
 .hist-top .t{min-width:0;overflow-wrap:anywhere}
@@ -178,6 +202,17 @@ details.why p{padding-bottom:16px;font-size:13px;line-height:1.55;color:var(--mu
 .chk input:checked::after{content:"";width:10px;height:5px;border-left:2px solid var(--btn-ink);border-bottom:2px solid var(--btn-ink);transform:rotate(-45deg) translate(1px,-1px)}
 .chk span{min-width:0;font-size:14px;line-height:1.45}
 .chk a{color:var(--accent);text-underline-offset:3px}
+/* задача пресета: галочка + название, под ним подпись и «−/+» */
+.pr{display:flex;align-items:flex-start;gap:12px;padding:14px 0}
+.pr input{appearance:none;-webkit-appearance:none;flex:none;width:24px;height:24px;margin:1px 0 0;border-radius:7px;border:1.5px solid var(--muted);background:transparent;cursor:pointer;display:grid;place-content:center}
+.pr input:checked{background:var(--btn-bg);border-color:var(--btn-bg)}
+.pr input:checked::after{content:"";width:10px;height:5px;border-left:2px solid var(--btn-ink);border-bottom:2px solid var(--btn-ink);transform:rotate(-45deg) translate(1px,-1px)}
+.pr-body{flex:1;min-width:0}
+.pr-t{font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+.pr-ctl{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}
+.pr-ctl .sub{margin:0;min-width:0}
+.pr-st{display:flex;align-items:center;gap:8px;flex:none}
+.pr.off .pr-t,.pr.off .pr-ctl{opacity:.4}
 
 /* «Нет активной цели»: цветок тонкой линией */
 .empty-state{display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 0 8px}
@@ -206,7 +241,6 @@ details.why p{padding-bottom:16px;font-size:13px;line-height:1.55;color:var(--mu
 </div>
 <div class="sw" id="viewSw" role="group" aria-label="Экран"><b>Экран</b>
   <button data-v="today" aria-pressed="true">Сегодня</button>
-  <button data-v="today-dirty" aria-pressed="false">Сегодня: «Сохранить»</button>
   <button data-v="dashboard" aria-pressed="false">Дашборд</button>
   <button data-v="history" aria-pressed="false">История</button>
   <button data-v="settings" aria-pressed="false">Настройки</button>
@@ -217,6 +251,11 @@ details.why p{padding-bottom:16px;font-size:13px;line-height:1.55;color:var(--mu
   <button data-v="m2" aria-pressed="false">Мастер 2</button>
   <button data-v="consent" aria-pressed="false">Согласие</button>
   <button data-v="load" aria-pressed="false">Заставка</button>
+</div>
+<div class="sw" id="stateSw" role="group" aria-label="Сохранить на экране Сегодня" style="display:grid;grid-template-columns:repeat(3,1fr)"><b style="grid-column:1/-1;flex:none">«Сохранить» (Telegram)</b>
+  <button data-s="none" aria-pressed="true">Нет изменений</button>
+  <button data-s="dirty" aria-pressed="false">Есть изменения</button>
+  <button data-s="kbd" aria-pressed="false">Клавиатура</button>
 </div>
 <div class="sw-note" id="tgNote"></div>
 <div class="sw-note" style="padding-top:0">Метка <span style="border:1px solid #888;border-radius:99px;padding:0 6px;font-size:11px">новое</span> — этого ещё нет в контракте (docs/screens.md). Меню видно на четырёх разделах; на экранах-сценариях его нет, а возврат — «‹ Назад» в шапке Telegram. В макете любой пресет открывает «Снижение веса»; пресеты из «Тело» и «Без вредной привычки» ведут через экран согласия.</div>
@@ -249,36 +288,31 @@ details.why p{padding-bottom:16px;font-size:13px;line-height:1.55;color:var(--mu
 
     <section class="sec">
       <h2 class="cap">Факт дня</h2>
-      <div class="card rows" id="rows">
+      <div class="rows" id="rows">
         <div class="row" id="sumRow"><label for="sum">Сколько сейчас, ₽</label><input class="in" id="sum" inputmode="numeric" value="238000"></div>
       </div>
-    </section>
-
-    <section class="sec">
-      <h2 class="cap">Итог дня</h2>
-      <div class="card rows">
-        <div class="row"><span class="row-main">Выполнено</span><span class="v" id="doneN">1 из 3, 33 %</span></div>
-        <div class="row"><span class="row-main">Внесено</span><span class="v" id="dayState">1 из 3 действий</span></div>
-        <div class="row"><span class="row-main">Алекс</span><span class="v">внёс все 3 из 3</span></div>
-        <div class="row"><span class="row-main">Серия</span><span class="v">6 дней</span></div>
-      </div>
-      <div class="stack">
-        <button class="btn sec" type="button" id="btnFinish">Готово на сегодня</button>
-        <button class="btn sec" type="button" id="btnAll">Все нормы выполнены</button>
-      </div>
+      <button class="btn sec compact mt" type="button" id="btnAll">Все нормы выполнены</button>
       <div class="undo" id="undo" hidden><span>Нормы выполнены</span><button class="pill" type="button" id="btnUndo">Отменить</button></div>
     </section>
 
     <section class="sec">
-      <h2 class="cap">Задачи</h2>
-      <div class="card">
-        <div class="rows">
-          <div class="task late"><button class="tick" type="button" aria-label="Отметить выполненной"></button><div><div class="t">Отправить КП Ромашке</div><div class="sub">Просрочено: срок был вчера</div></div></div>
-          <div class="task"><button class="tick" type="button" aria-label="Отметить выполненной"></button><div><div class="t">Созвониться с поставщиком</div><div class="sub">Сегодня</div></div></div>
-          <div class="task done"><button class="tick" type="button" aria-label="Отметить выполненной"></button><div><div class="t">Обновить прайс</div><div class="sub">Сегодня</div></div></div>
-        </div>
-        <button class="btn sec" type="button">+ Задача</button>
+      <h2 class="cap">Итог дня</h2>
+      <div class="rows">
+        <div class="row"><span class="row-main">Выполнено</span><span class="v" id="doneN">1 из 3</span></div>
+        <div class="row"><span class="av" aria-hidden="true">А</span><span class="row-main">Алекс</span><span class="v">3 из 3, внёс</span></div>
+        <div class="row"><span class="row-main">Серия</span><span class="v">6 дней</span></div>
       </div>
+      <button class="btn sec fin mt" type="button" id="btnFinish">Готово на сегодня</button>
+    </section>
+
+    <section class="sec">
+      <h2 class="cap">Задачи</h2>
+      <div class="rows">
+        <div class="task late"><button class="tick" type="button" aria-label="Отметить выполненной"></button><div><div class="t">Отправить КП Ромашке</div><div class="sub">Просрочено: срок был вчера</div></div></div>
+        <div class="task"><button class="tick" type="button" aria-label="Отметить выполненной"></button><div><div class="t">Созвониться с поставщиком</div><div class="sub">Сегодня</div></div></div>
+        <div class="task done"><button class="tick" type="button" aria-label="Отметить выполненной"></button><div><div class="t">Обновить прайс</div><div class="sub">Сегодня</div></div></div>
+      </div>
+      <button class="btn sec compact mt" type="button">+ Задача</button>
     </section>
   </main>
 
@@ -337,13 +371,17 @@ details.why p{padding-bottom:16px;font-size:13px;line-height:1.55;color:var(--mu
   <!-- Закреплённый низ: «Сохранить» (только при несохранённом) над меню. Меню — 4 вкладки из docs/screens.md §1; иконки Lucide, линия 1.5. -->
   <div class="dock">
     <div class="toast" id="toast" hidden>Сохранено</div>
-    <button class="btn primary" type="button" id="btnSave" hidden>Сохранить</button>
     <nav class="nav" aria-label="Разделы">
       <button class="tab" type="button" data-tab="today"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg><span>Сегодня</span></button>
       <button class="tab" type="button" data-tab="dashboard"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg><span>Дашборд</span></button>
       <button class="tab" type="button" data-tab="history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg><span>История</span></button>
       <button class="tab" type="button" data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg><span>Настройки</span></button>
     </nav>
+    <!-- Имитация нижней панели Telegram (рисует сам Telegram). «Сохранить» — Telegram.WebApp.MainButton, см. комментарий в начале файла. -->
+    <div class="tgbar" id="tgbar" hidden>
+      <button class="mainbtn" type="button" id="btnSave">Сохранить</button>
+    </div>
+    <div class="kbdbox" id="kbdbox" hidden>цифровая клавиатура</div>
   </div>
 
   <!-- ===== ЗАСТАВКА ===== -->
@@ -377,10 +415,10 @@ details.why p{padding-bottom:16px;font-size:13px;line-height:1.55;color:var(--mu
     </section>
     <section class="sec">
       <h2 class="cap">Бета</h2>
-      <div class="card">
-        <div class="rows"><div class="row"><span class="row-main">Версия</span><span class="v">0.1 (макет)</span></div></div>
+      <div class="rows"><div class="row"><span class="row-main">Версия</span><span class="v">0.1 (макет)</span></div></div>
+      <div class="stack">
         <button class="btn sec" type="button">Скопировать отчёт</button>
-        <button class="btn sec" type="button" style="margin-top:0">Сообщить о проблеме</button>
+        <button class="btn sec" type="button">Сообщить о проблеме</button>
       </div>
     </section>
   </main>
@@ -516,7 +554,7 @@ details.why p{padding-bottom:16px;font-size:13px;line-height:1.55;color:var(--mu
           <div><label class="lbl" for="mFrom">Старт</label><input class="in" id="mFrom" value="80" inputmode="decimal"></div>
           <div><label class="lbl" for="mTo">Цель</label><input class="in" id="mTo" value="77" inputmode="decimal"></div>
         </div>
-        <div class="fld"><label class="lbl">Способ ввода</label><input class="in" value="Текущее значение" disabled></div>
+        <div class="fld"><label class="lbl">Способ ввода</label><input class="in" value="Текущее значение" disabled><div class="hint">Раз в неделю, утром натощак</div></div>
         <div class="fld"><span class="lbl">Старт цели</span>
           <div class="seg"><button type="button" aria-pressed="true">Сегодня</button><button type="button" aria-pressed="false">Завтра</button><button type="button" aria-pressed="false">Другая дата</button></div></div>
         <div class="fld"><span class="lbl">Длина периода</span>
@@ -532,38 +570,58 @@ details.why p{padding-bottom:16px;font-size:13px;line-height:1.55;color:var(--mu
     </section>
 
     <section class="sec">
-      <h2 class="cap">Норма и минимум в тяжёлый день<span class="new">новое</span></h2>
-      <div class="card rows">
-        <div class="row"><div class="row-main"><div class="t">Шаги</div><div class="sub">Минимум 4 000</div></div>
-          <button class="step" type="button" data-s="-500" aria-label="Минус">−</button><div class="row-val done">8 000</div><button class="step" type="button" data-s="500" aria-label="Плюс">+</button></div>
-        <div class="row"><div class="row-main"><div class="t">Записать всё, что съел</div><div class="sub">Раз в день, минимум — записать хотя бы ужин</div></div>
-          <button class="step" type="button" data-s="-1" aria-label="Минус">−</button><div class="row-val done">1</div><button class="step" type="button" data-s="1" aria-label="Плюс">+</button></div>
-        <div class="row"><div class="row-main"><div class="t">Белок в каждом приёме пищи (≈30 г)</div><div class="sub">Приёмов в день, минимум — 1</div></div>
-          <button class="step" type="button" data-s="-1" aria-label="Минус">−</button><div class="row-val done">3</div><button class="step" type="button" data-s="1" aria-label="Плюс">+</button></div>
-        <div class="row"><div class="row-main"><div class="t">Приседания</div><div class="sub">Минимум 5</div></div>
-          <button class="step" type="button" data-s="-5" aria-label="Минус">−</button><div class="row-val done">30</div><button class="step" type="button" data-s="5" aria-label="Плюс">+</button></div>
+      <h2 class="cap">Ежедневные задачи<span class="new">новое</span></h2>
+      <div class="rows">
+        <div class="pr"><input type="checkbox" checked aria-label="Включить задачу"><div class="pr-body"><div class="pr-t">Прогулка на улице</div>
+          <div class="pr-ctl"><span class="sub">шагов в день</span><div class="pr-st"><button class="step" type="button" data-s="-500" aria-label="Минус">−</button><div class="row-val done">8 000</div><button class="step" type="button" data-s="500" aria-label="Плюс">+</button></div></div></div></div>
+        <div class="pr"><input type="checkbox" checked aria-label="Включить задачу"><div class="pr-body"><div class="pr-t">Тренировка</div>
+          <div class="pr-ctl"><span class="sub">минут в день</span><div class="pr-st"><button class="step" type="button" data-s="-5" aria-label="Минус">−</button><div class="row-val done">30</div><button class="step" type="button" data-s="5" aria-label="Плюс">+</button></div></div></div></div>
+        <div class="pr"><input type="checkbox" checked aria-label="Включить задачу"><div class="pr-body"><div class="pr-t">Калории за день по приложению-счётчику</div>
+          <div class="pr-ctl"><span class="sub">не больше, ккал<span class="new">новое</span></span><div class="pr-st"><button class="step" type="button" data-s="-50" aria-label="Минус">−</button><div class="row-val done">1 800</div><button class="step" type="button" data-s="50" aria-label="Плюс">+</button></div></div></div></div>
+        <div class="pr"><input type="checkbox" checked aria-label="Включить задачу"><div class="pr-body"><div class="pr-t">Белок в каждом приёме пищи (~30 г)</div>
+          <div class="pr-ctl"><span class="sub">приёмов в день</span><div class="pr-st"><button class="step" type="button" data-s="-1" aria-label="Минус">−</button><div class="row-val done">3</div><button class="step" type="button" data-s="1" aria-label="Плюс">+</button></div></div></div></div>
+        <div class="pr"><input type="checkbox" checked aria-label="Включить задачу"><div class="pr-body"><div class="pr-t">Овощи и фрукты, порции по 80 г</div>
+          <div class="pr-ctl"><span class="sub">порций в день</span><div class="pr-st"><button class="step" type="button" data-s="-1" aria-label="Минус">−</button><div class="row-val done">5</div><button class="step" type="button" data-s="1" aria-label="Плюс">+</button></div></div></div></div>
+        <div class="pr"><input type="checkbox" checked aria-label="Включить задачу"><div class="pr-body"><div class="pr-t">Стакан воды перед едой</div>
+          <div class="pr-ctl"><span class="sub">раз в день</span><div class="pr-st"><button class="step" type="button" data-s="-1" aria-label="Минус">−</button><div class="row-val done">3</div><button class="step" type="button" data-s="1" aria-label="Плюс">+</button></div></div></div></div>
+        <div class="pr"><input type="checkbox" checked aria-label="Включить задачу"><div class="pr-body"><div class="pr-t">Отказаться от одной «вредности»</div>
+          <div class="pr-ctl"><span class="sub">раз в день</span><div class="pr-st"><button class="step" type="button" data-s="-1" aria-label="Минус">−</button><div class="row-val done">1</div><button class="step" type="button" data-s="1" aria-label="Плюс">+</button></div></div></div></div>
+        <div class="pr"><input type="checkbox" checked aria-label="Включить задачу"><div class="pr-body"><div class="pr-t">Собрать красивую тарелку</div>
+          <div class="pr-ctl"><span class="sub">раз в день</span><div class="pr-st"><button class="step" type="button" data-s="-1" aria-label="Минус">−</button><div class="row-val done">1</div><button class="step" type="button" data-s="1" aria-label="Плюс">+</button></div></div></div></div>
+        <div class="pr"><input type="checkbox" checked aria-label="Включить задачу"><div class="pr-body"><div class="pr-t">Сон 7+ часов</div>
+          <div class="pr-ctl"><span class="sub">раз в день</span><div class="pr-st"><button class="step" type="button" data-s="-1" aria-label="Минус">−</button><div class="row-val done">1</div><button class="step" type="button" data-s="1" aria-label="Плюс">+</button></div></div></div></div>
+        <div class="pr"><input type="checkbox" checked aria-label="Включить задачу"><div class="pr-body"><div class="pr-t">Записать успех дня или снять видео о дне</div>
+          <div class="pr-ctl"><span class="sub">раз в день</span><div class="pr-st"><button class="step" type="button" data-s="-1" aria-label="Минус">−</button><div class="row-val done">1</div><button class="step" type="button" data-s="1" aria-label="Плюс">+</button></div></div></div></div>
       </div>
     </section>
 
     <section class="sec">
-      <h2 class="cap">Разовые задачи</h2>
-      <div class="card rows">
+      <h2 class="cap">Разовые задачи<span class="new">новое</span></h2>
+      <div class="rows">
+        <label class="chk"><input type="checkbox" checked><span>Купить шорты, майку и кроссовки</span></label>
+        <label class="chk"><input type="checkbox" checked><span>Купить коврик</span></label>
+        <label class="chk"><input type="checkbox" checked><span>Скачать приложение для подсчёта калорий</span></label>
         <label class="chk"><input type="checkbox" checked><span>Купить кухонные и напольные весы</span></label>
-        <label class="chk"><input type="checkbox" checked><span>Рассчитать свою норму калорий</span></label>
+        <label class="chk"><input type="checkbox" checked><span>Рассчитать норму калорий и белка на сайте</span></label>
+        <label class="chk"><input type="checkbox" checked><span>Сделать фото «до» и замеры</span></label>
+        <label class="chk"><input type="checkbox" checked><span>Составить меню на неделю</span></label>
         <label class="chk"><input type="checkbox" checked><span>Убрать сладкое с видных мест</span></label>
-        <label class="chk"><input type="checkbox" checked><span>Заготовить еду на 2–3 дня</span></label>
-        <details class="why">
-          <summary><span>Почему такие цифры<span class="new">новое</span></span></summary>
-          <p>Безопасный темп — 0,5–1 кг в неделю (CDC, NIH). Взяли середину, около 0,7 кг: −3 кг за 30 дней. Вес скачет на 1–2 кг за день из-за воды и соли, поэтому вносите его раз в неделю, в один день, утром натощак. Приседания и белок нужны, чтобы уходил жир, а не мышцы.</p>
-        </details>
+        <label class="chk"><input type="checkbox" checked><span>Найти напарника</span></label>
       </div>
+    </section>
+
+    <section class="sec">
+      <h2 class="cap">О пресете<span class="new">новое</span></h2>
+      <p class="small muted">Безопасный темп — 0,5–1 кг в неделю (CDC, NIH), взяли ~0,7: −3 кг за 30 дней. Калории считайте в приложении-счётчике, а сюда вносите итог дня. Вес скачет на 1–2 кг из-за воды и соли, поэтому вносите его раз в неделю.</p>
     </section>
 
     <section class="sec">
       <h2 class="cap">Важно<span class="new">новое</span></h2>
-      <div class="card box small">Нормы усреднённые и рассчитаны на здорового взрослого. Это не медицинская рекомендация. Перед стартом посоветуйтесь с врачом или тренером, особенно если есть хронические болезни, беременность, травмы или вы принимаете лекарства.</div>
-      <div class="stack"><button class="btn sec" type="button">Рассчитать свою норму<span class="new">новое</span></button></div>
+      <p class="small">Нормы усреднённые и рассчитаны на здорового взрослого. Это не медицинская рекомендация. Перед стартом посоветуйтесь с врачом или тренером, особенно если есть хронические болезни, беременность, травмы или вы принимаете лекарства. Не опускайте калорийность ниже 1200 ккал (женщины) и 1500 ккал (мужчины) без врача.</p>
+      <div style="margin-top:8px"><button class="linkbtn" type="button">Рассчитать свою норму</button><span class="new">новое</span></div>
     </section>
+
+    <p class="foot" style="margin-top:32px;margin-left:0;margin-right:0">Цифры в пресете — средние ориентиры для старта. Меняйте их под себя в любой момент.</p>
 
     <div class="stack" style="margin-top:28px"><button class="btn primary" type="button">Готово</button></div>
   </main>
@@ -572,7 +630,7 @@ details.why p{padding-bottom:16px;font-size:13px;line-height:1.55;color:var(--mu
   <main class="wrap" id="v-consent" hidden>
     <section class="sec" style="margin-top:16px">
       <h2 class="cap">Сведения о здоровье<span class="new">новое</span></h2>
-      <div class="card box">
+      <div>
         <p class="small">В этой цели вы будете вносить сведения о здоровье (вес, привычки). Они видны только вам и участникам вашего кабинета, никому не передаются и не анализируются.</p>
         <label class="chk" style="padding-bottom:0"><input type="checkbox" id="chkHealth"><span>Даю согласие на обработку <a href="#" onclick="return false">сведений о здоровье</a></span></label>
       </div>
@@ -617,7 +675,7 @@ details.why p{padding-bottom:16px;font-size:13px;line-height:1.55;color:var(--mu
   if(mq&&mq.addEventListener)mq.addEventListener('change',applyTheme);
   document.getElementById('viewSw').addEventListener('click',function(e){
     var v=e.target.getAttribute('data-v');if(!v)return;
-    if(v==='today-dirty'){resetDay();acts[1].v=1;setView('today');render();press('viewSw','data-v','today-dirty');return}
+    kbd=false;
     if(v==='today')resetDay();
     setView(v);
   });
@@ -641,6 +699,7 @@ details.why p{padding-bottom:16px;font-size:13px;line-height:1.55;color:var(--mu
   [].forEach.call(document.querySelectorAll('#v-m2 .seg'),function(s){
     s.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;[].forEach.call(s.children,function(x){x.setAttribute('aria-pressed',x===b?'true':'false')})});
   });
+  document.getElementById('v-m2').addEventListener('change',function(e){var p=e.target.closest('.pr');if(p)p.classList.toggle('off',!e.target.checked)});
   document.getElementById('v-today').addEventListener('click',function(e){var t=e.target.closest('.tick');if(t)t.parentNode.classList.toggle('done')});
 
   /* «Сегодня» */
@@ -655,14 +714,29 @@ details.why p{padding-bottom:16px;font-size:13px;line-height:1.55;color:var(--mu
         '<button class="step" type="button" data-i="'+i+'" data-d="-1" aria-label="Минус">−</button>'+
         '<div class="row-val'+(a.v===null?' empty':a.v>=a.norm?' done':'')+'">'+(a.v===null?'—':a.v)+'</div>'+
         '<button class="step" type="button" data-i="'+i+'" data-d="1" aria-label="Плюс">+</button>';
-      rows.insertBefore(r,sumRow);
+      rows.appendChild(r);
     });
-    var done=acts.filter(function(a){return a.v!==null&&a.v>=a.norm}).length,entered=acts.filter(function(a){return a.saved!==null}).length;
-    document.getElementById('doneN').textContent=done+' из 3, '+Math.round(done/3*100)+' %';
-    document.getElementById('dayState').textContent=entered===3?'день внесён':entered+' из 3 действий';
+    var done=acts.filter(function(a){return a.v!==null&&a.v>=a.norm}).length;
+    document.getElementById('doneN').textContent=done+' из 3';
     updateSave();
   }
-  function updateSave(){var show=dirty()&&phone.getAttribute('data-view')==='today';document.getElementById('btnSave').hidden=!show;phone.classList.toggle('dirty',show)}
+  /* MainButton «Сохранить»: видна на «Сегодня» при несохранённом; клавиатура скрывает меню, кнопка остаётся над ней */
+  var kbd=false;
+  function updateSave(){
+    var today=phone.getAttribute('data-view')==='today',show=today&&dirty(),k=today&&kbd;
+    document.getElementById('tgbar').hidden=!show;
+    document.getElementById('kbdbox').hidden=!k;
+    phone.classList.toggle('dirty',show);phone.classList.toggle('kbd',k);
+    press('stateSw','data-s',!today?'':k?'kbd':show?'dirty':'none');
+  }
+  document.getElementById('stateSw').addEventListener('click',function(e){
+    var s=e.target.getAttribute('data-s');if(!s)return;
+    resetDay();kbd=false;
+    if(s==='dirty')acts[1].v=1;
+    if(s==='kbd'){kbd=true;sum.value='240000'}
+    setView('today');render();
+    if(s==='kbd')window.scrollTo(0,Math.max(0,sumRow.getBoundingClientRect().top+window.scrollY-120));
+  });
   rows.addEventListener('click',function(e){
     var b=e.target.closest('.step');if(!b)return;
     var a=acts[+b.getAttribute('data-i')],d=+b.getAttribute('data-d');
@@ -671,7 +745,7 @@ details.why p{padding-bottom:16px;font-size:13px;line-height:1.55;color:var(--mu
   });
   sum.addEventListener('input',render);
   function toast(){var t=document.getElementById('toast');t.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true},2000)}
-  function saveDay(){acts.forEach(function(a){a.saved=a.v});savedSum=sum.value;render();toast()}
+  function saveDay(){acts.forEach(function(a){a.saved=a.v});savedSum=sum.value;kbd=false;render();toast()}
   document.getElementById('btnSave').addEventListener('click',saveDay);
   document.getElementById('btnFinish').addEventListener('click',function(){acts.forEach(function(a){if(a.v===null)a.v=0});saveDay()});
   document.getElementById('btnAll').addEventListener('click',function(){
