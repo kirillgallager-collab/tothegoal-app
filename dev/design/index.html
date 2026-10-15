@@ -11,19 +11,15 @@
     Заставка: те же цвета, что у выбранной темы.
   (setHeaderColor принимает 'bg_color' / 'secondary_bg_color' или строку #RRGGBB.)
 
-  Перенос в приложение: блоки [data-theme="…"] и [data-font="…"] из секции THEMES заменить на :root (или на класс на <html>).
+  Шрифт один: Montserrat (вариативный, 200–400, кириллица + латиница), цифры и заголовки 200/400 — как в fonts.html, вариант 2.
+  Перенос в приложение: блоки [data-theme="…"] из секции THEMES заменить на :root (или на класс на <html>); тема «Авто» берёт Telegram.WebApp.colorScheme.
   Шрифты локальные (fonts/*.woff2, font-display: swap), внешних запросов нет.
+  Метка «новое» — то, чего ещё нет в docs/screens.md (в приложение метки не переносить).
 -->
 <style>
-/* ===== Шрифты: Cormorant Garamond 500/600, Manrope 400/600, Onest 400/600 (вариативные файлы, по два начертания) ===== */
-@font-face{font-family:"Cormorant Garamond";font-style:normal;font-weight:500 600;font-display:swap;src:url(fonts/cormorant-cyrillic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
-@font-face{font-family:"Cormorant Garamond";font-style:normal;font-weight:500 600;font-display:swap;src:url(fonts/cormorant-latin.woff2) format("woff2");unicode-range:U+0020-007E,U+00A0,U+00B7,U+2013,U+2039,U+2212}
-@font-face{font-family:"Manrope";font-style:normal;font-weight:400 600;font-display:swap;src:url(fonts/manrope-cyrillic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
-@font-face{font-family:"Manrope";font-style:normal;font-weight:400 600;font-display:swap;src:url(fonts/manrope-latin.woff2) format("woff2");unicode-range:U+0020-007E,U+00A0,U+00AB,U+00B7,U+00BB,U+2013,U+2014,U+2026,U+2039,U+203A,U+2212}
-@font-face{font-family:"Manrope";font-style:normal;font-weight:400 600;font-display:swap;src:url(fonts/manrope-latin-ext.woff2) format("woff2");unicode-range:U+20BD}
-@font-face{font-family:"Onest";font-style:normal;font-weight:400 600;font-display:swap;src:url(fonts/onest-cyrillic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
-@font-face{font-family:"Onest";font-style:normal;font-weight:400 600;font-display:swap;src:url(fonts/onest-latin.woff2) format("woff2");unicode-range:U+0020-007E,U+00A0,U+00AB,U+00B7,U+00BB,U+2013,U+2014,U+2026,U+2039,U+203A,U+2212}
-@font-face{font-family:"Onest";font-style:normal;font-weight:400 600;font-display:swap;src:url(fonts/onest-latin-ext.woff2) format("woff2");unicode-range:U+20BD}
+/* ===== Шрифт: Montserrat 200–400, два файла (кириллица 23,8 КБ + латиница 38,0 КБ = 61,8 КБ) ===== */
+@font-face{font-family:"Montserrat";font-style:normal;font-weight:200 400;font-display:swap;src:url(fonts/montserrat-cyrillic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Montserrat";font-style:normal;font-weight:200 400;font-display:swap;src:url(fonts/montserrat-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 
 /* ===== THEMES: только переменные. Один блок = одна тема ===== */
 [data-theme="light"]{
@@ -42,72 +38,124 @@
   --line:rgba(236,230,220,.1); --track:#2A302C; --bar:#E0D3B8;
   --soft:#232824; --skel-a:#1B201D; --skel-b:#272E2A; --tg-head:#121614;
 }
-/* ===== Шрифты: размеры крупных элементов; остальные размеры одинаковы во всех вариантах ===== */
-[data-font="serif"]{--f-disp:"Cormorant Garamond",Manrope,Georgia,"Times New Roman",serif;--f-body:Manrope,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--hero:44px;--hero-w:600;--h:20px;--date:18px}
-[data-font="manrope"]{--f-disp:Manrope,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--f-body:Manrope,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--hero:40px;--hero-w:600;--h:20px;--date:18px}
-[data-font="onest"]{--f-disp:Onest,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--f-body:Onest,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--hero:40px;--hero-w:600;--h:20px;--date:18px}
 
 /* ===== Общее ===== */
 *{box-sizing:border-box;margin:0}
 html{background:#1b1b1b}
-body{font:400 15px/1.45 Manrope,system-ui,sans-serif;color:#ddd;background:#1b1b1b;-webkit-text-size-adjust:100%}
+body{font:400 15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#ddd;background:#1b1b1b;-webkit-text-size-adjust:100%;overflow-x:hidden}
 [hidden]{display:none!important}
 .sw{display:flex;gap:8px;padding:8px 16px 0;max-width:430px;margin:0 auto;background:#1b1b1b;flex-wrap:wrap;align-items:center}
 .sw b{flex:0 0 52px;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em}
 .sw button{flex:1 1 0;min-width:0;font:inherit;font-size:13px;padding:8px 6px;border-radius:12px;border:1px solid #444;background:#2a2a2a;color:#ddd;cursor:pointer}
+#viewSw{display:grid;grid-template-columns:repeat(3,1fr)}
+#viewSw b{grid-column:1/-1}
+#viewSw button{padding:8px 4px}
 .sw button[aria-pressed="true"]{background:#ddd;color:#111;border-color:#ddd}
 .sw-note{max-width:430px;margin:0 auto;padding:8px 16px;font-size:12px;color:#888}
 
-.phone{max-width:430px;margin:0 auto;min-height:100vh;position:relative;padding-bottom:104px;color:var(--text);background:var(--bg);font-family:var(--f-body);font-feature-settings:"lnum"}
-.tghead{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--tg-head);font-size:15px;font-weight:600;border-bottom:1px solid var(--line)}
+.phone{--f-disp:Montserrat,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--f-body:var(--f-disp);--hero:44px;--hero-w:200;--h:18px;--date:18px;
+  max-width:430px;margin:0 auto;min-height:100vh;position:relative;padding-bottom:104px;color:var(--text);background:var(--bg);font-family:var(--f-body);font-weight:400;font-feature-settings:"lnum";overflow-x:hidden}
+.tghead{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--tg-head);font-size:15px;font-weight:400;border-bottom:1px solid var(--line)}
 .phone[data-view="load"] .tghead{display:none}
 .tghead span{opacity:.6;font-weight:400;font-size:13px}
 .wrap{padding:16px 16px 24px}
 
-.card{background:var(--card);border:1px solid var(--card-border);border-radius:24px;padding:24px;margin-bottom:16px;box-shadow:var(--card-shadow)}
-h2{font:600 var(--h)/1.2 var(--f-disp);letter-spacing:.005em;margin-bottom:8px;overflow-wrap:anywhere}
-.cap{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px}
+.card{background:var(--card);border:1px solid var(--card-border);border-radius:24px;padding:22px 20px 20px;margin-bottom:16px;box-shadow:var(--card-shadow)}
+h2{font:400 var(--h)/1.3 var(--f-disp);margin-bottom:8px;overflow-wrap:anywhere}
+.cap{font-size:11px;line-height:1.3;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:400;margin-bottom:8px}
+.stats,.sub{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);line-height:1.5}
+.sub{margin-top:2px}
 .muted{color:var(--muted)}
-.small{font-size:13px}
+.small{font-size:13px;line-height:1.5}
 .num{font-family:var(--f-disp);font-weight:var(--hero-w);color:var(--accent);font-variant-numeric:lining-nums}
-.hero{font-size:var(--hero);line-height:1.1;letter-spacing:-.01em}
-.hero-of{margin-top:8px}
-.bar{height:8px;border-radius:99px;background:var(--track);overflow:hidden;margin:24px 0 16px}
-.bar>i{display:block;height:100%;border-radius:99px;background:var(--bar)}
+.hero{font-size:var(--hero);line-height:1.1;letter-spacing:-.01em;margin-top:14px}
+.hero-of{margin-top:2px}
+.bar{height:4px;border-radius:2px;background:var(--track);overflow:hidden;margin:16px 0 10px}
+.bar>i{display:block;height:100%;border-radius:2px;background:var(--bar)}
 
 .dateline{display:flex;align-items:center;gap:16px;margin-bottom:16px}
-.dateline b{font:600 var(--date)/1.2 var(--f-disp);min-width:0}
+.dateline b{font:400 var(--date)/1.2 var(--f-disp);min-width:0}
 .pill{font:inherit;font-size:13px;border-radius:99px;padding:8px 16px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer;white-space:nowrap}
-.row{display:flex;align-items:center;gap:8px;padding:16px 0;border-top:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:12px;padding:16px 0;border-top:1px solid var(--line)}
 .row:first-of-type{border-top:0;padding-top:8px}
 .row-main{flex:1;min-width:0}
-.row-main .t{font-weight:600}
-.row-val{font:600 28px/1 var(--f-disp);min-width:40px;text-align:center;font-variant-numeric:lining-nums}
-.row-val.empty{color:var(--muted);font-weight:400}
-.step{width:40px;height:40px;flex:none;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--text);font:inherit;font-size:20px;line-height:1;cursor:pointer;touch-action:manipulation}
+.row-main .t{font-weight:400}
+.row-val{font:200 22px/1 var(--f-disp);color:var(--accent);min-width:32px;text-align:center;font-variant-numeric:lining-nums}
+.row-val.empty{color:var(--muted)}
+.step{width:36px;height:36px;flex:none;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--text);font:400 18px/1 var(--f-body);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;touch-action:manipulation}
 .field{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:16px;border-top:1px solid var(--line)}
 .field label{flex:none;color:var(--muted);font-size:13px}
-.field input{flex:1;min-width:0;font:600 18px var(--f-body);padding:8px 16px;border-radius:16px;border:1px solid var(--line);background:var(--soft);color:var(--text);text-align:right}
-.btn{display:block;width:100%;font:inherit;font-weight:600;padding:16px;border-radius:99px;border:0;cursor:pointer;touch-action:manipulation}
+.field input{flex:1;min-width:0;font:400 18px var(--f-body);padding:8px 16px;border-radius:14px;border:1px solid var(--line);background:var(--soft);color:var(--text);text-align:right}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;font:400 15px/1.2 var(--f-body);letter-spacing:.04em;padding:12px 16px;border-radius:14px;border:0;cursor:pointer;touch-action:manipulation;text-align:center}
 .btn.primary{background:var(--btn-bg);color:var(--btn-ink)}
 .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);margin-top:8px}
+.btn[disabled]{opacity:.35;cursor:default}
 .state{margin-top:8px}
 .task{display:flex;gap:16px;align-items:flex-start;padding:16px 0;border-top:1px solid var(--line)}
 .task:first-of-type{border-top:0;padding-top:8px}
 .task i{flex:none;width:24px;height:24px;border-radius:99px;border:1.5px solid var(--muted)}
 .task.done i{background:var(--muted);border-color:var(--muted)}
 .task.done span{text-decoration:line-through;color:var(--muted)}
+.task>div{min-width:0}
 .undo{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:16px;padding:8px 8px 8px 24px;border-radius:99px;background:var(--card);border:1px solid var(--card-border);box-shadow:var(--card-shadow)}
 
 .savebar{position:fixed;left:0;right:0;bottom:0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));max-width:430px;margin:0 auto;background:linear-gradient(180deg,transparent,var(--bg) 40%)}
-.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--btn-bg);color:var(--btn-ink);font-weight:600;padding:16px 24px;border-radius:99px;z-index:9;box-shadow:var(--card-shadow)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--btn-bg);color:var(--btn-ink);font-weight:400;padding:16px 24px;border-radius:99px;z-index:9;box-shadow:var(--card-shadow)}
 
 .hist-top{display:flex;justify-content:space-between;align-items:baseline;gap:16px}
 .hist-top h2{margin:0;min-width:0}
-.res{font-size:13px;font-weight:600;white-space:nowrap}
+.res{font-size:13px;font-weight:400;white-space:nowrap}
 .hist-num{margin-top:16px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .hist-num .num{font-size:var(--hero);line-height:1}
 .quote{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+
+/* метка «новое»: пока нет в docs/screens.md */
+.new{display:inline-block;vertical-align:middle;margin-left:8px;padding:1px 7px;border:1px solid var(--accent);border-radius:99px;color:var(--accent);font:400 10px/1.5 var(--f-body);letter-spacing:.06em;text-transform:none;white-space:nowrap}
+
+/* списки, формы, сегменты */
+.li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0;border-top:1px solid var(--line)}
+.li:first-child{border-top:0;padding-top:4px}
+.li .arr{color:var(--muted);font-size:18px}
+.seg{display:flex;gap:8px;margin-top:12px}
+.seg button{flex:1 1 0;min-width:0;font:400 13px/1.2 var(--f-body);padding:10px 4px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--btn-bg);color:var(--btn-ink);border-color:var(--btn-bg)}
+.fld{margin-top:16px}
+.fld:first-of-type{margin-top:0}
+.fld>.cap{margin-bottom:6px}
+.in{display:block;width:100%;min-width:0;font:400 16px/1.3 var(--f-body);padding:12px 16px;border-radius:14px;border:1px solid var(--line);background:var(--soft);color:var(--text)}
+.in[disabled]{opacity:.6}
+textarea.in{resize:vertical;min-height:64px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hint{font-size:12px;line-height:1.4;color:var(--muted);margin-top:6px}
+.note{padding:14px 16px;border-radius:14px;background:var(--soft);font-size:13px;line-height:1.5}
+.linkbtn{display:inline-block;padding:8px 0;border:0;background:none;color:var(--accent);font:400 15px/1.3 var(--f-body);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.gap{margin-top:16px}
+.center{text-align:center}
+.pad{padding:24px 0 8px}
+
+/* пресеты */
+.group{margin:24px 0 8px}
+.group:first-of-type{margin-top:8px}
+.preset{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;padding:14px 18px;border-radius:18px;border:1px solid var(--line);background:var(--card);color:var(--text);font:400 15px/1.3 var(--f-body);cursor:pointer;margin-bottom:8px}
+.preset>span{min-width:0}
+.preset small{display:block;margin-top:3px;font-size:12px;color:var(--muted)}
+.preset .arr{color:var(--muted);font-size:18px;flex:none}
+.foot{margin-top:24px;font-size:12px;line-height:1.5;color:var(--muted)}
+
+/* мастер M-2 */
+details.why{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+details.why summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px}
+details.why summary::-webkit-details-marker{display:none}
+details.why summary::after{content:"+";font-size:20px;color:var(--muted);flex:none}
+details.why[open] summary::after{content:"−"}
+details.why p{margin-top:10px;font-size:13px;line-height:1.55;color:var(--muted)}
+.chk{display:flex;align-items:flex-start;gap:12px;padding:10px 0}
+.chk input{appearance:none;-webkit-appearance:none;flex:none;width:24px;height:24px;margin:0;border-radius:7px;border:1.5px solid var(--muted);background:transparent;cursor:pointer;display:grid;place-content:center}
+.chk input:checked{background:var(--btn-bg);border-color:var(--btn-bg)}
+.chk input:checked::after{content:"";width:10px;height:5px;border-left:2px solid var(--btn-ink);border-bottom:2px solid var(--btn-ink);transform:rotate(-45deg) translate(1px,-1px)}
+.chk span{min-width:0;font-size:14px;line-height:1.45}
+.chk a{color:var(--accent);text-underline-offset:3px}
+.chk.on input{border-color:var(--accent)}
 
 /* заставка */
 .splash{display:flex;flex-direction:column;align-items:center;padding:32px 0 24px}
@@ -127,19 +175,22 @@ h2{font:600 var(--h)/1.2 var(--f-disp);letter-spacing:.005em;margin-bottom:8px;o
   <button data-t="light" aria-pressed="true">Светлая</button>
   <button data-t="dark" aria-pressed="false">Тёмная</button>
 </div>
-<div class="sw" id="fontSw" role="group" aria-label="Шрифт"><b>Шрифт</b>
-  <button data-f="serif" aria-pressed="true">Засечки</button>
-  <button data-f="manrope" aria-pressed="false">Manrope</button>
-  <button data-f="onest" aria-pressed="false">Onest</button>
-</div>
 <div class="sw" id="viewSw" role="group" aria-label="Экран"><b>Экран</b>
   <button data-v="today" aria-pressed="true">Сегодня</button>
   <button data-v="history" aria-pressed="false">История</button>
   <button data-v="load" aria-pressed="false">Заставка</button>
+  <button data-v="settings" aria-pressed="false">Настройки</button>
+  <button data-v="goal" aria-pressed="false">Цель</button>
+  <button data-v="nogoal" aria-pressed="false">Нет цели</button>
+  <button data-v="summary" aria-pressed="false">Итог цели</button>
+  <button data-v="m1" aria-pressed="false">Мастер 1</button>
+  <button data-v="m2" aria-pressed="false">Мастер 2</button>
+  <button data-v="consent" aria-pressed="false">Согласие</button>
 </div>
 <div class="sw-note" id="tgNote"></div>
+<div class="sw-note" style="padding-top:0">Метка <span style="border:1px solid #888;border-radius:99px;padding:0 6px;font-size:10px">новое</span> — этого ещё нет в контракте (docs/screens.md). В макете любой пресет открывает «Снижение веса»; пресеты из «Тело» и «Без вредной привычки» ведут через экран согласия.</div>
 
-<div class="phone" id="phone" data-theme="light" data-font="serif" data-view="today">
+<div class="phone" id="phone" data-theme="light" data-view="today">
   <div class="tghead">ДоЦели <span>шапка Telegram</span></div>
 
   <!-- ===== СЕГОДНЯ (S-10) ===== -->
@@ -150,11 +201,11 @@ h2{font:600 var(--h)/1.2 var(--f-disp);letter-spacing:.005em;margin-bottom:8px;o
     </div>
 
     <section class="card">
-      <div class="cap">400 000 ₽ за месяц</div>
+      <div class="cap" style="margin-bottom:0">400 000 ₽ за месяц</div>
       <div class="num hero">238 000</div>
-      <div class="hero-of muted">из 400 000 ₽</div>
+      <div class="hero-of">из 400 000 ₽</div>
       <div class="bar" role="progressbar" aria-valuenow="238000" aria-valuemin="0" aria-valuemax="400000"><i style="width:59.5%"></i></div>
-      <div class="small muted">осталось 162 000 · 13 дней · серия 6</div>
+      <div class="stats">осталось 162 000 · 13 дней · серия 6</div>
     </section>
 
     <div class="undo" id="undo" hidden><span>Нормы выполнены</span><button class="pill" type="button" id="btnUndo">Отменить</button></div>
@@ -171,8 +222,8 @@ h2{font:600 var(--h)/1.2 var(--f-disp);letter-spacing:.005em;margin-bottom:8px;o
     <section class="card">
       <h2>Итог дня</h2>
       <div><span class="num" style="font-size:28px" id="doneN">1 из 3</span> <span class="muted" id="donePct">· 33 %</span></div>
-      <div class="small muted state" id="dayState">Внесено 1 из 3 действий</div>
-      <div class="small muted" style="margin-top:4px">Алекс: 3 из 3 · внёс</div>
+      <div class="stats state" id="dayState">Внесено 1 из 3 действий</div>
+      <div class="stats" style="margin-top:4px">Алекс: 3 из 3 · внёс</div>
       <div style="margin-top:16px">
         <button class="btn ghost" type="button" id="btnFinish" style="margin-top:0">Готово на сегодня</button>
         <button class="btn ghost" type="button" id="btnAll">Все нормы выполнены</button>
@@ -181,9 +232,9 @@ h2{font:600 var(--h)/1.2 var(--f-disp);letter-spacing:.005em;margin-bottom:8px;o
 
     <section class="card">
       <h2>Задачи</h2>
-      <div class="task"><i></i><div><span>Отправить КП Ромашке</span><br><small class="muted">просрочено · вчера</small></div></div>
-      <div class="task"><i></i><div><span>Созвониться с поставщиком</span><br><small class="muted">сегодня</small></div></div>
-      <div class="task done"><i></i><div><span>Обновить прайс</span><br><small class="muted">сегодня</small></div></div>
+      <div class="task"><i></i><div><span>Отправить КП Ромашке</span><div class="sub">просрочено · вчера</div></div></div>
+      <div class="task"><i></i><div><span>Созвониться с поставщиком</span><div class="sub">сегодня</div></div></div>
+      <div class="task done"><i></i><div><span>Обновить прайс</span><div class="sub">сегодня</div></div></div>
       <button class="pill" type="button" style="margin-top:8px">+ задача</button>
     </section>
   </main>
@@ -197,24 +248,24 @@ h2{font:600 var(--h)/1.2 var(--f-disp);letter-spacing:.005em;margin-bottom:8px;o
   <main class="wrap" id="v-history" hidden>
     <section class="card">
       <div class="hist-top"><h2>400 000 ₽ за месяц</h2><span class="res muted">идёт</span></div>
-      <div class="small muted">15.09 – 15.10</div>
+      <div class="stats">15.09 – 15.10</div>
       <div class="hist-num"><span class="num">238 000</span><span class="muted small">из 400 000 ₽ · 59,5 %</span></div>
     </section>
     <section class="card">
       <div class="hist-top"><h2>250 000 ₽ за месяц</h2><span class="res">Успех</span></div>
-      <div class="small muted">15.08 – 14.09</div>
+      <div class="stats">15.08 – 14.09</div>
       <div class="hist-num"><span class="num">268 400</span><span class="muted small">из 250 000 ₽ · 107 %</span></div>
       <div class="quote">Какие ошибки: два дня пропустили звонки из-за поездки, догоняли в выходные.</div>
     </section>
     <section class="card">
       <div class="hist-top"><h2>150 000 ₽ за месяц</h2><span class="res muted">Не успех</span></div>
-      <div class="small muted">15.07 – 14.08</div>
+      <div class="stats">15.07 – 14.08</div>
       <div class="hist-num"><span class="num">121 000</span><span class="muted small">из 150 000 ₽ · 81 %</span></div>
       <div class="quote">Какие ошибки: слишком мало встреч в первой половине, норму подняли поздно.</div>
     </section>
     <section class="card">
       <div class="hist-top"><h2>100 000 ₽ за месяц</h2><span class="res">Успех</span></div>
-      <div class="small muted">15.06 – 14.07</div>
+      <div class="stats">15.06 – 14.07</div>
       <div class="hist-num"><span class="num">112 500</span><span class="muted small">из 100 000 ₽ · 113 %</span></div>
       <div class="quote">Какие ошибки: не вносили факт по вечерам, часть данных восстанавливали по памяти.</div>
     </section>
@@ -226,22 +277,221 @@ h2{font:600 var(--h)/1.2 var(--f-disp);letter-spacing:.005em;margin-bottom:8px;o
     <div class="card"><div class="sk a"></div><div class="sk b"></div><div class="sk c"></div><div class="sk d"></div></div>
     <div class="card"><div class="sk a"></div><div class="sk r"></div><div class="sk r"></div><div class="sk r"></div></div>
   </main>
+
+  <!-- ===== НАСТРОЙКИ (S-50) ===== -->
+  <main class="wrap" id="v-settings" hidden>
+    <section class="card">
+      <h2>Настройки</h2>
+      <div class="li"><span>Цель</span><span class="arr">›</span></div>
+      <div class="li"><span>Действия</span><span class="arr">›</span></div>
+      <div class="li"><span>Сообщения Telegram</span><span class="arr">›</span></div>
+      <div class="li"><span>Участники</span><span class="arr">›</span></div>
+      <div class="li"><span>Кабинет</span><span class="arr">›</span></div>
+    </section>
+    <section class="card">
+      <div class="cap">Тема<span class="new">новое</span></div>
+      <div class="seg" id="themeMode" role="group" aria-label="Тема приложения">
+        <button type="button" data-m="auto" aria-pressed="true">Авто</button>
+        <button type="button" data-m="light" aria-pressed="false">Светлая</button>
+        <button type="button" data-m="dark" aria-pressed="false">Тёмная</button>
+      </div>
+      <div class="hint">Авто — как в Telegram.</div>
+    </section>
+    <section class="card">
+      <div class="cap">Версия беты: 0.1 (макет)</div>
+      <button class="btn ghost" type="button" style="margin-top:0">Скопировать отчёт</button>
+      <button class="btn ghost" type="button">Сообщить о проблеме</button>
+    </section>
+  </main>
+
+  <!-- ===== ЦЕЛЬ (S-51) ===== -->
+  <main class="wrap" id="v-goal" hidden>
+    <section class="card">
+      <h2>Цель</h2>
+      <div class="fld"><div class="cap">Название</div><input class="in" value="400 000 ₽ за месяц"></div>
+      <div class="two fld">
+        <div><div class="cap">Единица</div><input class="in" value="₽"></div>
+        <div><div class="cap">Дата окончания</div><input class="in" value="28.10.2026"></div>
+      </div>
+      <div class="note gap">Менять нельзя — завершите цель и создайте новую.</div>
+      <div class="two fld">
+        <div><div class="cap">Старт</div><input class="in" value="0" disabled></div>
+        <div><div class="cap">Цель</div><input class="in" value="400 000" disabled></div>
+      </div>
+      <div class="fld"><div class="cap">Направление</div><input class="in" value="Рост" disabled></div>
+      <button class="btn primary" type="button" style="margin-top:24px">Сохранить</button>
+      <button class="btn ghost" type="button">Поднять планку</button>
+      <button class="btn ghost" type="button">Завершить цель</button>
+    </section>
+  </main>
+
+  <!-- ===== НЕТ АКТИВНОЙ ЦЕЛИ (S-41) ===== -->
+  <main class="wrap" id="v-nogoal" hidden>
+    <section class="card center pad">
+      <h2>Нет активной цели</h2>
+      <div class="muted small">Прошлые цели сохранены в истории</div>
+      <button class="btn primary" type="button" style="margin-top:24px">Создать цель</button>
+    </section>
+  </main>
+
+  <!-- ===== ИТОГ ЦЕЛИ (S-33) ===== -->
+  <main class="wrap" id="v-summary" hidden>
+    <section class="card">
+      <div class="hist-top"><div class="cap" style="margin-bottom:0">Итог цели</div><span class="res">Успех</span></div>
+      <h2 style="margin-top:8px">400 000 ₽ за месяц</h2>
+      <div class="stats">15.09 – 15.10</div>
+      <div class="num hero">412 000</div>
+      <div class="hero-of">из 400 000 ₽ · 103 %</div>
+      <div class="bar"><i style="width:100%"></i></div>
+      <div class="stats">План 400 000 · факт 412 000 · серия 12 дней</div>
+    </section>
+    <section class="card">
+      <h2>Рефлексия</h2>
+      <div class="fld"><div class="cap">Что сработало</div><textarea class="in" rows="2"></textarea></div>
+      <div class="fld"><div class="cap">Какие ошибки</div><textarea class="in" rows="2"></textarea></div>
+      <div class="fld"><div class="cap">Что сделаю иначе</div><textarea class="in" rows="2"></textarea></div>
+      <button class="btn primary" type="button" style="margin-top:20px">Сохранить</button>
+      <button class="btn ghost" type="button">Пропустить</button>
+    </section>
+    <button class="btn primary" type="button">Новая цель</button>
+    <button class="btn ghost" type="button">Повторить эту цель</button>
+  </main>
+
+  <!-- ===== МАСТЕР M-1: ПРЕСЕТ ===== -->
+  <main class="wrap" id="v-m1" hidden>
+    <h2 style="margin-bottom:0">Выберите пресет</h2>
+
+    <div class="cap group">Деньги<span class="new">новое</span></div>
+    <button class="preset" type="button" data-go="m2"><span>Деньги<small>0 → 400 000 ₽ · 30 дней</small></span><span class="arr">›</span></button>
+    <button class="preset" type="button" data-go="m2"><span>Аудитория<small>0 → 100 000 подписчиков · 30 дней</small></span><span class="arr">›</span></button>
+    <button class="preset" type="button" data-go="m2"><span>Накопления<small>50 000 → 150 000 ₽ · 90 дней</small></span><span class="arr">›</span></button>
+
+    <div class="cap group">Тело<span class="new">новое</span></div>
+    <button class="preset" type="button" data-go="consent"><span>Снижение веса<small>80 → 77 кг · 30 дней</small></span><span class="arr">›</span></button>
+    <button class="preset" type="button" data-go="consent"><span>Спорт<small>0 → 100 км · 30 дней</small></span><span class="arr">›</span></button>
+
+    <div class="cap group">Голова<span class="new">новое</span></div>
+    <button class="preset" type="button" data-go="m2"><span>Обучение / навык<small>0 → 300 слов · 30 дней</small></span><span class="arr">›</span></button>
+    <button class="preset" type="button" data-go="m2"><span>Чтение<small>0 → 600 страниц · 30 дней</small></span><span class="arr">›</span></button>
+
+    <div class="cap group">Привычки<span class="new">новое</span></div>
+    <button class="preset" type="button" data-go="consent"><span>Без вредной привычки<span class="new" style="margin-left:6px">новое</span><small>дни без привычки · 30 дней</small></span><span class="arr">›</span></button>
+
+    <div class="cap group">Своя цель<span class="new">новое</span></div>
+    <button class="preset" type="button" data-go="m2"><span>Своя цель<small>всё заполните сами</small></span><span class="arr">›</span></button>
+
+    <p class="foot">Цифры в пресете — средние ориентиры для старта. Меняйте их под себя в любой момент.<span class="new">новое</span></p>
+  </main>
+
+  <!-- ===== МАСТЕР M-2: ПОПРАВИТЬ ЦИФРЫ (пресет «Снижение веса») ===== -->
+  <main class="wrap" id="v-m2" hidden>
+    <button class="pill" type="button" data-go="m1" style="margin-bottom:16px">‹ Назад</button>
+    <section class="card">
+      <div class="cap">Пресет · Снижение веса</div>
+      <div class="fld"><div class="cap">Название</div><input class="in" value="Вес"></div>
+      <div class="fld"><div class="cap">Единица</div><input class="in" value="кг"></div>
+      <div class="fld"><div class="cap">Направление</div>
+        <div class="seg" style="margin-top:0"><button type="button" aria-pressed="false">Рост</button><button type="button" aria-pressed="true">Снижение</button></div></div>
+      <div class="two fld">
+        <div><div class="cap">Старт</div><input class="in" value="80" inputmode="decimal"></div>
+        <div><div class="cap">Цель</div><input class="in" value="77" inputmode="decimal"></div>
+      </div>
+      <div class="fld"><div class="cap">Способ ввода</div><input class="in" value="Текущее значение" disabled><div class="hint">Вносится текущий вес.</div></div>
+      <div class="fld"><div class="cap">Старт цели</div>
+        <div class="seg" style="margin-top:0"><button type="button" aria-pressed="true">Сегодня</button><button type="button" aria-pressed="false">Завтра</button><button type="button" aria-pressed="false">Другая дата</button></div></div>
+      <div class="fld"><div class="cap">Длина периода</div>
+        <div class="seg" style="margin-top:0"><button type="button" aria-pressed="true">30 дней</button><button type="button" aria-pressed="false">60 дней</button><button type="button" aria-pressed="false">90 дней</button></div></div>
+    </section>
+
+    <section class="card">
+      <h2>Действия</h2>
+      <div class="cap" style="margin-bottom:0">Норма и минимум в тяжёлый день<span class="new">новое</span></div>
+      <div class="row" style="border-top:0"><div class="row-main"><div class="t">Шаги</div><div class="sub">минимум: 4 000</div></div>
+        <button class="step" type="button" data-s="-500" aria-label="Минус">−</button><div class="row-val" data-fmt="n">8 000</div><button class="step" type="button" data-s="500" aria-label="Плюс">+</button></div>
+      <div class="row"><div class="row-main"><div class="t">Записать всё, что съел</div><div class="sub">раз в день · минимум: записать хотя бы ужин</div></div>
+        <button class="step" type="button" data-s="-1" aria-label="Минус">−</button><div class="row-val">1</div><button class="step" type="button" data-s="1" aria-label="Плюс">+</button></div>
+      <div class="row"><div class="row-main"><div class="t">Белок в каждом приёме пищи (≈30 г)</div><div class="sub">приёма · минимум: 1 приём</div></div>
+        <button class="step" type="button" data-s="-1" aria-label="Минус">−</button><div class="row-val">3</div><button class="step" type="button" data-s="1" aria-label="Плюс">+</button></div>
+      <div class="row"><div class="row-main"><div class="t">Приседания</div><div class="sub">минимум: 5</div></div>
+        <button class="step" type="button" data-s="-5" aria-label="Минус">−</button><div class="row-val">30</div><button class="step" type="button" data-s="5" aria-label="Плюс">+</button></div>
+    </section>
+
+    <section class="card">
+      <h2>Разовые задачи</h2>
+      <label class="chk"><input type="checkbox" checked><span>Купить кухонные и напольные весы</span></label>
+      <label class="chk"><input type="checkbox" checked><span>Рассчитать свою норму калорий</span></label>
+      <label class="chk"><input type="checkbox" checked><span>Убрать сладкое с видных мест</span></label>
+      <label class="chk"><input type="checkbox" checked><span>Заготовить еду на 2–3 дня</span></label>
+
+      <details class="why">
+        <summary><span>Почему такие цифры<span class="new">новое</span></span></summary>
+        <p>Безопасный темп — 0,5–1 кг в неделю (CDC, NIH). Взяли середину, около 0,7 кг: −3 кг за 30 дней. Вес скачет на 1–2 кг за день из-за воды и соли, поэтому вносите его раз в неделю, в один день, утром натощак. Приседания и белок нужны, чтобы уходил жир, а не мышцы.</p>
+      </details>
+    </section>
+
+    <div class="note">Нормы усреднённые и рассчитаны на здорового взрослого. Это не медицинская рекомендация. Перед стартом посоветуйтесь с врачом или тренером, особенно если есть хронические болезни, беременность, травмы или вы принимаете лекарства.<span class="new">новое</span></div>
+    <div class="center" style="margin-top:8px"><button class="linkbtn" type="button">Рассчитать свою норму</button><span class="new">новое</span></div>
+
+    <div class="small muted gap center">Москва (UTC+3) — изменить</div>
+    <button class="btn primary" type="button" style="margin-top:16px">Готово</button>
+  </main>
+
+  <!-- ===== СОГЛАСИЕ НА СВЕДЕНИЯ О ЗДОРОВЬЕ ===== -->
+  <main class="wrap" id="v-consent" hidden>
+    <section class="card">
+      <h2>Сведения о здоровье<span class="new">новое</span></h2>
+      <p class="small">В этой цели вы будете вносить сведения о здоровье (вес, привычки). Они видны только вам и участникам вашего кабинета, никому не передаются и не анализируются.</p>
+      <label class="chk" id="chkWrap" style="margin-top:12px"><input type="checkbox" id="chkHealth"><span>Даю согласие на обработку <a href="#" onclick="return false">сведений о здоровье</a></span></label>
+      <button class="btn primary" type="button" id="btnConsent" style="margin-top:20px" disabled>Продолжить</button>
+      <button class="btn ghost" type="button" data-go="m1">Назад</button>
+    </section>
+  </main>
 </div>
 
 <script>
 (function(){
   var phone=document.getElementById('phone');
+  var VIEWS=['today','history','load','settings','goal','nogoal','summary','m1','m2','consent'];
   var NOTE={light:'Telegram: header и background #F7F3EC, нижняя панель #FFFDF9',dark:'Telegram: header и background #121614, нижняя панель #1B201D'};
+  var mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+  var mode='auto';
   function press(id,attr,val){[].forEach.call(document.getElementById(id).querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',b.getAttribute(attr)===val?'true':'false')})}
-  function save(k,v){try{localStorage.setItem('dp3:'+k,v)}catch(e){}}
-  function load(k,ok,def){try{var v=localStorage.getItem('dp3:'+k);return ok.indexOf(v)>-1?v:def}catch(e){return def}}
-  function setTheme(t){phone.setAttribute('data-theme',t);press('themeSw','data-t',t);document.getElementById('tgNote').textContent=NOTE[t];save('theme',t)}
-  function setFont(f){phone.setAttribute('data-font',f);press('fontSw','data-f',f);save('font',f)}
-  function setView(v){phone.setAttribute('data-view',v);['today','history','load'].forEach(function(n){document.getElementById('v-'+n).hidden=n!==v});press('viewSw','data-v',v);updateSave()}
-  document.getElementById('themeSw').addEventListener('click',function(e){var t=e.target.getAttribute('data-t');if(t)setTheme(t)});
-  document.getElementById('fontSw').addEventListener('click',function(e){var f=e.target.getAttribute('data-f');if(f)setFont(f)});
+  function save(k,v){try{localStorage.setItem('dp4:'+k,v)}catch(e){}}
+  function load(k,ok,def){try{var v=localStorage.getItem('dp4:'+k);return ok.indexOf(v)>-1?v:def}catch(e){return def}}
+  function applyTheme(){
+    var t=mode==='auto'?(mq&&mq.matches?'dark':'light'):mode;
+    phone.setAttribute('data-theme',t);press('themeSw','data-t',mode==='auto'?'':t);press('themeMode','data-m',mode);
+    document.getElementById('tgNote').textContent=NOTE[t]+(mode==='auto'?' (тема «Авто»: сейчас как в системе)':'');
+  }
+  function setMode(m){mode=m;save('mode',m);applyTheme()}
+  function setView(v){
+    phone.setAttribute('data-view',v);
+    VIEWS.forEach(function(n){document.getElementById('v-'+n).hidden=n!==v});
+    press('viewSw','data-v',v);updateSave();save('view',v);
+    window.scrollTo(0,0);
+  }
+  document.getElementById('themeSw').addEventListener('click',function(e){var t=e.target.getAttribute('data-t');if(t)setMode(t)});
+  document.getElementById('themeMode').addEventListener('click',function(e){var m=e.target.getAttribute('data-m');if(m)setMode(m)});
+  if(mq&&mq.addEventListener)mq.addEventListener('change',applyTheme);
   document.getElementById('viewSw').addEventListener('click',function(e){var v=e.target.getAttribute('data-v');if(v)setView(v)});
+  phone.addEventListener('click',function(e){var g=e.target.closest('[data-go]');if(g)setView(g.getAttribute('data-go'))});
 
+  /* согласие: «Продолжить» только с галочкой */
+  var chk=document.getElementById('chkHealth'),go=document.getElementById('btnConsent');
+  chk.addEventListener('change',function(){go.disabled=!chk.checked});
+  go.addEventListener('click',function(){if(!go.disabled){chk.checked=false;go.disabled=true;setView('m2')}});
+
+  /* мастер M-2: кнопки «−/+» у норм */
+  document.getElementById('v-m2').addEventListener('click',function(e){
+    var b=e.target.closest('.step');if(!b)return;
+    var val=b.parentNode.querySelector('.row-val'),n=parseInt(val.textContent.replace(/\s/g,''),10)+(+b.getAttribute('data-s'));
+    n=Math.max(0,n);val.textContent=n>=1000?String(n).replace(/\B(?=(\d{3})+$)/g,' '):n;
+  });
+  [].forEach.call(document.querySelectorAll('#v-m2 .seg'),function(s){
+    s.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;[].forEach.call(s.children,function(x){x.setAttribute('aria-pressed',x===b?'true':'false')})});
+  });
+
+  /* «Сегодня» */
   var acts=[{n:'Звонки',norm:15,saved:15,v:15},{n:'Встречи',norm:3,saved:null,v:null},{n:'Коммерческие предложения',norm:2,saved:null,v:null,note:'норма выросла: было 1'}];
   var savedSum='238000',rows=document.getElementById('rows'),sum=document.getElementById('sum'),undoSnap=null,undoT,toastT;
   function dirty(){return acts.some(function(a){return a.v!==a.saved})||sum.value!==savedSum}
@@ -249,7 +499,7 @@ h2{font:600 var(--h)/1.2 var(--f-disp);letter-spacing:.005em;margin-bottom:8px;o
     rows.innerHTML='';
     acts.forEach(function(a,i){
       var r=document.createElement('div');r.className='row';
-      r.innerHTML='<div class="row-main"><div class="t">'+a.n+'</div><div class="small muted">норма '+a.norm+(a.note?' · '+a.note:'')+(a.v!==null&&a.v>=a.norm?' · выполнено':'')+(a.v!==a.saved?' · не сохранено':'')+'</div></div>'+
+      r.innerHTML='<div class="row-main"><div class="t">'+a.n+'</div><div class="sub">норма '+a.norm+(a.note?' · '+a.note:'')+(a.v!==null&&a.v>=a.norm?' · выполнено':'')+(a.v!==a.saved?' · не сохранено':'')+'</div></div>'+
         '<button class="step" data-i="'+i+'" data-d="-1" aria-label="Минус">−</button>'+
         '<div class="row-val'+(a.v===null?' empty':'')+'">'+(a.v===null?'—':a.v)+'</div>'+
         '<button class="step" data-i="'+i+'" data-d="1" aria-label="Плюс">+</button>';
@@ -283,7 +533,8 @@ h2{font:600 var(--h)/1.2 var(--f-disp);letter-spacing:.005em;margin-bottom:8px;o
     document.getElementById('undo').hidden=true;clearTimeout(undoT);saveDay();
   });
 
-  setTheme(load('theme',['light','dark'],'light'));setFont(load('font',['serif','manrope','onest'],'serif'));render();
+  mode=load('mode',['auto','light','dark'],'light');render();applyTheme();
+  setView(load('view',VIEWS,'today'));
 })();
 </script>
 </body>
