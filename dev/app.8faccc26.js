@@ -208,7 +208,7 @@ window.GT_CONFIG = {
       failures: 'Неудачных вызовов: {n} из {total}', perMethod: 'По методам (тёплые, среднее в мс, в скобках число): {list}',
       marks: 'Старт (мс от открытия страницы): скрипты готовы {scripts}, первый экран {first} ({what})',
       reasons: { start: 'старт', action: 'действие', tab: 'вкладка', background: 'фон' },
-      last: 'Последние {n} запросов, новые сверху:', line: '{time} {method} [{reason}] · отправлен на {since} мс · ждали {ms} мс · {code} · requestId {id}{attempts}', attempts: ' · попытки (мс, итог): {list}', serverMs: ' (сервер {n} мс)',
+      last: 'Последние {n} запросов, новые сверху:', line: '{time} {method} [{reason}] · отправлен на {since} мс · ждали {ms} мс · {code} · requestId {id}{attempts}', ageSec: '{n} с', ageMin: '{n} мин', ageHour: '{n} ч', cachedMark: ' · из кэша (экран за {shown} мс, данным {age})', cacheHeader: 'Показано из кэша (экран за … мс от открытия вкладки):', cacheLine: '{time} {method} · из кэша · экран за {shown} мс · данным {age} · {refresh}', cacheRefresh: 'свежие запрошены', cacheNoRefresh: 'без запроса (данные не меняются)', attempts: ' · попытки (мс, итог): {list}', serverMs: ' (сервер {n} мс)',
       copy: 'Скопировать', copied: 'Скопировано', copyFail: 'Не удалось скопировать автоматически: выделите текст выше и скопируйте вручную.', refresh: 'Обновить'
     },
     goalSettings: {
@@ -580,7 +580,7 @@ window.GT_CONFIG = {
           try {
             // reason: почему ушёл запрос (start | action | tab | background); sinceOpen — мс от открытия страницы до отправки (видно цепочки запросов)
             o.onCall({ method: method, requestId: requestId, startedAt: startedAt, ms: Math.round(now() - t0), attempts: log,
-              reason: (opts && opts.reason) || null, sinceOpen: Math.round(t0),
+              reason: (opts && opts.reason) || null, sinceOpen: Math.round(t0), cached: (opts && opts.cached) || null, // cached: данные уже показаны из кэша { ageMs, shownMs }
               ok: !!result.ok, code: result.ok ? 'ok' : result.error.code, replayed: !!result.replayed, serverTime: result.serverTime || serverTime });
           } catch (e) { /* замер не должен ломать запрос */ }
         }
@@ -701,13 +701,319 @@ window.GT_CONFIG = {
 
     function mark(name, ms, note) { if (!marks[name]) marks[name] = { ms: Math.round(ms), note: note || null }; }
 
+    // Показ данных из кэша: { method, at (Date.now), shownMs — от открытия вкладки до показа, ageMs — возраст данных, refreshed — ушёл ли запрос за свежим }
+    var shown = [];
+    function cacheShown(r) { shown.unshift(r); if (shown.length > max) shown.pop(); }
+
     return { record: record, mark: mark, marks: function () { return Object.assign({}, marks); }, list: function () { return recent.slice(); }, summary: summary,
-      clear: function () { recent = []; warm = []; cold = null; failures = 0; total = 0; marks = {}; } };
+      cacheShown: cacheShown, cacheList: function () { return shown.slice(); },
+      clear: function () { recent = []; warm = []; cold = null; failures = 0; total = 0; marks = {}; shown = []; } };
   }
 
   var api = { createDiag: createDiag, stats: stats };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.GT = root.GT || {}; root.GT.diagLogic = api; }
+})(globalThis);
+
+;
+// Кэш чтений вкладок (дашборд, история, карточка цели, настройки цели) в localStorage: «сначала показать сохранённое, свежее запросить в фоне».
+// Чистая логика без DOM; браузер и Node. Любая ошибка localStorage не ломает экран: записи живут в памяти страницы.
+//
+// Ключ записи: gt:data:v2: + область (окружение, кабинет, участник) + вид + id цели + уточнение (например, 'completed'). При смене
+// кабинета или участника область другая, чужие записи не показываются и удаляются (purge). Формат записи изменился → поднять
+// версию префикса (VERSION), новая сборка не читает старые записи.
+// Свежесть: запись показывается всегда, а свежие данные запрашивает экран. Один запрос на вид+цель+уточнение: пока он в пути,
+// второй вызов ждёт тот же ответ. Запись (факт, смена цели) обновляет «поколение» затронутых видов: ответ, начатый до записи,
+// в кэш не попадает, и второй вызов после записи не присоединяется к старому запросу.
+(function (root) {
+  'use strict';
+
+  var VERSION = 'v2';
+  var PREFIX = 'gt:data:' + VERSION + ':';
+  var SEP = '|';
+
+  // Методы чтения: ответ записи не нужен, кэш они не сбрасывают
+  var READ_ONLY = /\.(get|list|preview)$/;
+  // Запись факта дня: меняет дашборд и строку активной цели в истории
+  var FACT_WRITES = { 'day.save': 1, 'fact.set': 1, 'day.completeAll': 1, 'day.finish': 1 };
+
+  // o: { getStorage() → Storage|null, scope() → строка области или null (кабинет неизвестен), now(), maxBytes = 250000 }
+  function createDataCache(o) {
+    var now = o.now || Date.now;
+    var maxBytes = o.maxBytes || 250000;
+    var mem = {};        // key → запись { at, data } или null (удалена)
+    var gens = {};       // 'вид|цель' → счётчик «поколения»
+    var flights = {};    // key + поколение → Promise ответа
+
+    function st() { try { return o.getStorage ? o.getStorage() : null; } catch (e) { return null; } }
+    function scope() { var s; try { s = o.scope(); } catch (e) { s = null; } return s ? String(s).split(SEP).join('_') : null; }
+    function part(v) { return v == null ? '' : String(v).split(SEP).join('_'); }
+    function keyOf(sc, kind, goalId, extra) { return PREFIX + sc + SEP + kind + SEP + part(goalId) + SEP + part(extra); }
+
+    // Все ключи (хранилище и память) с префиксом
+    function allKeys() {
+      var seen = {};
+      Object.keys(mem).forEach(function (k) { if (mem[k]) seen[k] = 1; });
+      try {
+        var s = st();
+        if (s && typeof s.key === 'function') for (var i = 0; i < s.length; i++) { var k = s.key(i); if (k && k.indexOf(PREFIX) === 0) seen[k] = 1; }
+      } catch (e) { /* остаётся память */ }
+      return Object.keys(seen);
+    }
+
+    function readEntry(key) {
+      if (Object.prototype.hasOwnProperty.call(mem, key)) return mem[key];
+      try {
+        var s = st();
+        var raw = s ? s.getItem(key) : null;
+        if (raw) { var v = JSON.parse(raw); if (v && typeof v.at === 'number') { mem[key] = v; return v; } }
+      } catch (e) { /* повреждённая запись: считаем, что её нет */ }
+      return null;
+    }
+
+    function removeKey(key) {
+      mem[key] = null;
+      try { var s = st(); if (s) s.removeItem(key); } catch (e) { /* остаётся в памяти */ }
+    }
+
+    function sizeOf(key) {
+      try { var s = st(); var raw = s ? s.getItem(key) : null; if (raw) return raw.length; } catch (e) { /* ниже оценка по памяти */ }
+      var e2 = mem[key];
+      return e2 ? JSON.stringify(e2).length : 0;
+    }
+
+    // Общий размер не больше maxBytes: сначала удаляются самые старые записи (сама новая запись остаётся)
+    function enforceLimit(keep) {
+      var list = allKeys().map(function (k) { var e = readEntry(k); return { key: k, at: e ? e.at : 0, size: sizeOf(k) }; });
+      var total = list.reduce(function (n, x) { return n + x.size; }, 0);
+      if (total <= maxBytes) return;
+      list.sort(function (a, b) { return a.at - b.at; });
+      for (var i = 0; i < list.length && total > maxBytes; i++) {
+        if (list[i].key === keep) continue;
+        total -= list[i].size;
+        removeKey(list[i].key);
+      }
+    }
+
+    function parse(key) { // ключ → части; null для чужого формата
+      if (key.indexOf(PREFIX) !== 0) return null;
+      var p = key.slice(PREFIX.length).split(SEP);
+      return p.length === 4 ? { scope: p[0], kind: p[1], goalId: p[2], extra: p[3] } : null;
+    }
+
+    // ---------- чтение и запись ----------
+    // { data, at } или null. Записи другой области (кабинет, участник) не возвращаются.
+    function get(kind, goalId, extra) {
+      var sc = scope();
+      if (!sc) return null;
+      var e = readEntry(keyOf(sc, kind, goalId, extra));
+      return e ? { data: e.data, at: e.at } : null;
+    }
+
+    function set(kind, goalId, extra, data) {
+      var sc = scope();
+      if (!sc) return false;
+      var key = keyOf(sc, kind, goalId, extra);
+      var entry = { at: now(), data: data };
+      var raw;
+      try { raw = JSON.stringify(entry); } catch (e) { return false; }
+      if (raw.length > maxBytes / 2) return false; // одна запись больше половины лимита — не храним
+      mem[key] = entry;
+      try {
+        var s = st();
+        if (s) {
+          try { s.setItem(key, raw); } catch (e2) { enforceLimit(key); s.setItem(key, raw); } // нет места: убираем старое и пробуем ещё раз
+        }
+      } catch (e3) { /* остаётся в памяти страницы */ }
+      enforceLimit(key);
+      return true;
+    }
+
+    // ---------- поколения и сброс ----------
+    function genSig(kind, goalId) { return (gens[kind + SEP + '*'] || 0) + '.' + (goalId ? (gens[kind + SEP + goalId] || 0) : 0); }
+    function bump(kind, goalId) { var k = kind + SEP + (goalId || '*'); gens[k] = (gens[k] || 0) + 1; }
+
+    // Удалить записи вида (goalId, extra не заданы — все) и обновить поколение: начатые ранее ответы в кэш не попадут.
+    function invalidate(kind, goalId, extra) {
+      bump(kind, goalId);
+      allKeys().forEach(function (k) {
+        var p = parse(k);
+        if (!p || p.kind !== kind) return;
+        if (goalId !== undefined && p.goalId !== part(goalId)) return;
+        if (extra !== undefined && p.extra !== part(extra)) return;
+        removeKey(k);
+      });
+    }
+
+    // Записи других кабинетов и участников удаляются (вызывать, когда область известна)
+    function purge() {
+      var sc = scope();
+      if (!sc) return; // кабинет ещё неизвестен: ничего не удаляем
+      allKeys().forEach(function (k) { var p = parse(k); if (!p || p.scope !== sc) removeKey(k); });
+      // Старые версии формата (gt:data:v1: и др.) не читаются и не мешают, но место занимают: чистим их тоже
+      try {
+        var s = st();
+        if (s && typeof s.key === 'function') {
+          var old = [];
+          for (var i = 0; i < s.length; i++) { var k2 = s.key(i); if (k2 && k2.indexOf('gt:data:') === 0 && k2.indexOf(PREFIX) !== 0) old.push(k2); }
+          old.forEach(function (k3) { s.removeItem(k3); });
+        }
+      } catch (e) { /* не критично */ }
+    }
+
+    function clear() { allKeys().forEach(removeKey); gens = {}; flights = {}; }
+
+    // ---------- запрос с общим ответом ----------
+    // fetcher() → Promise<результат клиента API { ok, data|error }>. opts.cacheable(data) → false, если ответ в кэш класть нельзя.
+    // Возвращает Promise того же результата; пока запрос в пути (и поколение не менялось), повторный вызов получает тот же Promise.
+    function load(kind, goalId, extra, fetcher, opts) {
+      var sc = scope();
+      var sig = genSig(kind, goalId);
+      var fkey = (sc || '') + SEP + kind + SEP + part(goalId) + SEP + part(extra) + SEP + sig;
+      if (flights[fkey]) return flights[fkey];
+      var p = Promise.resolve().then(fetcher).then(function (res) {
+        if (res && res.ok && genSig(kind, goalId) === sig && sc === scope() && (!opts || !opts.cacheable || opts.cacheable(res.data))) set(kind, goalId, extra, res.data);
+        return res;
+      });
+      var done = function () { if (flights[fkey] === p) delete flights[fkey]; };
+      flights[fkey] = p;
+      p.then(done, done);
+      return p;
+    }
+
+    function inFlight(kind, goalId, extra) {
+      return !!flights[(scope() || '') + SEP + kind + SEP + part(goalId) + SEP + part(extra) + SEP + genSig(kind, goalId)];
+    }
+
+    // ---------- реакции на записи ----------
+    // До отправки записи: затронутые виды получают новое поколение, ответы, начатые раньше, в кэш не попадут;
+    // факт дня дополнительно сразу убирает дашборд (его нельзя показывать без только что сохранённого).
+    function beforeWrite(method, params) {
+      if (READ_ONLY.test(method) || method === 'presets.list') return;
+      if (FACT_WRITES[method]) { invalidate('dashboard'); invalidate('history.list', undefined, 'all'); return; }
+      bump('dashboard'); bump('history.list'); bump('goal.get');
+      if (params && params.goalId) bump('history.get', params.goalId);
+    }
+
+    // После ответа записи (успех или нет: при «нет связи» запись могла выполниться): затронутое удаляется,
+    // кроме goal.update, где настройки цели обновляются из ответа.
+    function afterWrite(method, params, res) {
+      if (READ_ONLY.test(method) || method === 'presets.list') return;
+      var goalId = params && params.goalId;
+      if (FACT_WRITES[method]) { invalidate('dashboard'); invalidate('history.list', undefined, 'all'); return; }
+      if (method === 'goal.update' && res && res.ok && res.data && res.data.goal) {
+        invalidate('dashboard'); invalidate('history.list'); bump('goal.get', res.data.goal.id);
+        var cur = get('goal.get', res.data.goal.id, '');
+        if (cur) { cur.data.goal = res.data.goal; set('goal.get', res.data.goal.id, '', cur.data); }
+        return;
+      }
+      if (method === 'reflection.save' || method === 'reflection.dismiss') {
+        if (goalId) invalidate('history.get', goalId); else invalidate('history.get');
+        invalidate('history.list');
+        return;
+      }
+      if (method === 'cabinet.delete') { clear(); return; }
+      // goal.create, goal.complete, goal.raiseBar, action.*, прочее: меняющееся удаляем; завершённые карточки (history.get) не трогаем
+      invalidate('dashboard'); invalidate('history.list'); invalidate('goal.get');
+      if (goalId && (method === 'goal.raiseBar' || method === 'goal.dismissReached')) invalidate('history.get', goalId);
+    }
+
+    return {
+      get: get, set: set, invalidate: invalidate, purge: purge, clear: clear, load: load, inFlight: inFlight,
+      beforeWrite: beforeWrite, afterWrite: afterWrite, keys: allKeys, PREFIX: PREFIX
+    };
+  }
+
+  // Чтения вкладок поверх кэша: единый вход для экранов и фоновая загрузка.
+  // o: { cache (createDataCache), call(method, params, opts) → Promise<результат API>, writes: { outstanding(), idle() } | null (очередь записи факта),
+  //      boot() → app.bootstrap, noGoal() → bool, clock() → мс от открытия страницы, now() → Date.now, onShown(запись для «Диагностики») }
+  function createTabData(o) {
+    var cache = o.cache;
+    var now = o.now || Date.now;
+    var clock = o.clock || function () { return 0; };
+
+    // Описания чтений: одни и те же параметры у экрана и у фона, иначе фоновый ответ вкладке не пригодится (ключ кэша и общий запрос совпадают)
+    var spec = {
+      // дашборд за 14 дней (период по умолчанию); explicit — дашборд прошлой цели из карточки
+      dashboard: function (goalId, explicit) {
+        return { kind: 'dashboard', goalId: goalId, extra: '14', method: 'dashboard.get', params: explicit ? { goalId: goalId, periodDays: 14 } : { periodDays: 14 } };
+      },
+      // при активной цели список с ней (первой), без неё — только завершённые
+      historyList: function () {
+        var done = o.noGoal();
+        return { kind: 'history.list', goalId: '', extra: done ? 'completed' : 'all', method: 'history.list', params: done ? { limit: 20, status: 'completed' } : { limit: 20 } };
+      },
+      // завершённая цель не меняется (кроме рефлексии); идущая в кэш не кладётся
+      card: function (goalId) {
+        return { kind: 'history.get', goalId: goalId, extra: '', method: 'history.get', params: { goalId: goalId }, immutable: true, cacheable: function (d) { return !!(d && d.result); } };
+      },
+      goal: function (goalId) { return { kind: 'goal.get', goalId: goalId, extra: '', method: 'goal.get', params: { goalId: goalId } }; }
+    };
+
+    // Запрос за свежим: один на вид+цель+уточнение. Дашборд и история ждут запись факта в очереди (иначе ответ мог бы прийти без неё).
+    function fetchRead(s, reason, info) {
+      return cache.load(s.kind, s.goalId, s.extra, function () {
+        var q = o.writes;
+        var wait = q && (s.kind === 'dashboard' || s.kind === 'history.list') && q.outstanding() ? q.idle() : Promise.resolve();
+        return wait.then(function () { return o.call(s.method, s.params, { reason: reason, cached: info }); });
+      }, { cacheable: s.cacheable });
+    }
+
+    // → { cached: {data, at}|null, fresh: Promise|null, shown() }. cached показывают сразу и вызывают shown() (замер для «Диагностики»);
+    // fresh — запрос за свежим (null, если данные не меняются и они уже есть).
+    function read(s) {
+      var t0 = clock();
+      var hit = cache.get(s.kind, s.goalId, s.extra);
+      var info = hit ? { ageMs: now() - hit.at, shownMs: null } : null;
+      var needFresh = !(hit && s.immutable);
+      var fresh = needFresh ? fetchRead(s, 'tab', info) : null;
+      return {
+        cached: hit, fresh: fresh,
+        shown: function () {
+          if (!hit) return;
+          info.shownMs = Math.round(clock() - t0);
+          if (o.onShown) o.onShown({ method: s.method, at: now(), shownMs: info.shownMs, ageMs: info.ageMs, refreshed: needFresh });
+        }
+      };
+    }
+
+    // То же в фоне: результат только в кэш, ошибка молчит
+    function prefetch(s) { return fetchRead(s, 'background', null).then(function (res) { return res; }, function () { return { ok: false }; }); }
+
+    // Фон: один раз за сеанс после показа первого экрана, по очереди; действия пользователя не ждут. Открыл вкладку, пока её запрос идёт, — ждёт тот же.
+    var started = false;
+    function startBackground() {
+      if (started) return false;
+      var b = o.boot();
+      if (!b || !b.cabinet || !b.me || (b.access !== 'active' && b.access !== 'readonly') || (b.consent && b.consent.required)) return false;
+      started = true;
+      var g = b.activeGoal;
+      var items = null;
+      var chain = Promise.resolve();
+      function step(fn) { chain = chain.then(fn).then(null, function () { /* фон молчит */ }); }
+      if (g) step(function () { return prefetch(spec.dashboard(g.id)); });
+      step(function () {
+        var s = spec.historyList();
+        return prefetch(s).then(function (res) {
+          var c = cache.get(s.kind, s.goalId, s.extra);
+          items = res.ok ? res.data.items : (c ? c.data.items : null);
+        });
+      });
+      step(function () { // последняя завершённая цель: карточка не меняется, если уже в кэше — запрос не нужен
+        var last = (items || []).filter(function (it) { return it.status === 'completed'; })[0];
+        if (!last || cache.get('history.get', last.goalId, '')) return null;
+        return prefetch(spec.card(last.goalId));
+      });
+      if (g) step(function () { return prefetch(spec.goal(g.id)); }); // app.bootstrap не отдаёт startValue, targetValue, rev и действия — настройкам нужен goal.get
+      return chain; // промис конца цепочки (нужен тестам; приложение его не ждёт)
+    }
+
+    return { spec: spec, read: read, prefetch: prefetch, startBackground: startBackground, fetchRead: fetchRead };
+  }
+
+  var api = { createDataCache: createDataCache, createTabData: createTabData, PREFIX: PREFIX, VERSION: VERSION };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else { root.GT = root.GT || {}; root.GT.dataCache = api; }
 })(globalThis);
 
 ;
@@ -4235,11 +4541,13 @@ window.GT_CONFIG = {
       box.appendChild(h('div', { class: 'stack' }, finish));
     }
     // итог периода: один dashboard.get
-    env.call('dashboard.get', { periodDays: 14 }).then(function (res) {
-      if (!res.ok) return;
-      var p = res.data.progress;
-      sum.textContent = t('outOfPeriod.summary', { cur: F.num(p.currentValue), target: F.num(p.targetValue), unit: res.data.goal.unit, p: p.percent });
-    });
+    function fill(d) {
+      var p = d.progress;
+      sum.textContent = t('outOfPeriod.summary', { cur: F.num(p.currentValue), target: F.num(p.targetValue), unit: d.goal.unit, p: p.percent });
+    }
+    var rd = env.read(env.readSpec.dashboard(g.id)); // сохранённый итог сразу, свежий подменяет его
+    if (rd.cached) { fill(rd.cached.data); rd.shown(); }
+    rd.fresh.then(function (res) { if (res.ok) fill(res.data); });
     return Promise.resolve(box);
   }
 
@@ -4598,18 +4906,33 @@ window.GT_CONFIG = {
     var period = params.periodDays || 14;
     var goalId = params.goalId;
 
-    function load() {
-      return env.call('dashboard.get', goalId ? { goalId: goalId, periodDays: period } : { periodDays: period }).then(function (res) {
-        box.textContent = '';
-        if (!res.ok) {
-          if (res.error.code === 'no_active_goal') { box.appendChild(h('h2', { text: t('noGoal.title') })); box.appendChild(h('p', { text: t('noGoal.text') })); return box; }
-          box.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) }));
-          box.appendChild(env.U.button(t('common.retry'), load));
-          return box;
-        }
-        draw(res.data);
+    function render(res) {
+      box.textContent = '';
+      if (!res.ok) {
+        if (res.error.code === 'no_active_goal') { box.appendChild(h('h2', { text: t('noGoal.title') })); box.appendChild(h('p', { text: t('noGoal.text') })); return box; }
+        box.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) }));
+        box.appendChild(env.U.button(t('common.retry'), load));
         return box;
+      }
+      draw(res.data);
+      return box;
+    }
+
+    // Период по умолчанию (14 дней) идёт через кэш: сначала сохранённое, свежее подменяет его тихо; 7 и 30 дней — обычный запрос
+    var seq = 0;
+    function load() {
+      var my = ++seq;
+      var gid = goalId || (env.boot().activeGoal && env.boot().activeGoal.id);
+      if (period !== 14 || !gid) return env.call('dashboard.get', goalId ? { goalId: goalId, periodDays: period } : { periodDays: period }).then(render);
+      var r = env.read(env.readSpec.dashboard(gid, !!goalId));
+      var shownJson = null;
+      if (r.cached) { render({ ok: true, data: r.cached.data }); shownJson = JSON.stringify(r.cached.data); r.shown(); }
+      var fresh = r.fresh.then(function (res) {
+        if (my !== seq) return box; // за это время выбран другой период
+        if (r.cached && ((res.ok && JSON.stringify(res.data) === shownJson) || (!res.ok && res.error.code !== 'no_active_goal'))) return box; // то же самое или свежих нет: остаётся сохранённое
+        return render(res);
       });
+      return r.cached ? box : fresh;
     }
 
     function draw(d) {
@@ -4672,23 +4995,47 @@ window.GT_CONFIG = {
     box.appendChild(list);
     box.appendChild(more);
 
+    var pages = 1; // сколько страниц уже показано: свежая первая страница не затирает подгруженные
+    function drawItems(data, cursor) {
+      more.textContent = '';
+      if (!data.items.length && !cursor) list.appendChild(h('p', { class: 'hint', text: t('review.historyEmpty') }));
+      data.items.forEach(function (it) {
+        list.appendChild(h('button', { type: 'button', class: 'secondary history-row', onclick: function () { env.go('card', { goalId: it.goalId }); } },
+          h('strong', { text: it.title }),
+          h('span', { class: 'hint', text: F.period(it.startDate, it.endDate) }),
+          h('span', { text: t('review.histLine', { target: F.num(it.targetValue), unit: it.unit, final: F.num(it.finalValue), p: it.percent }) }),
+          h('span', { class: 'badge ' + (it.outcome === 'success' ? 'ok' : ''), text: outcomeText(env, it.outcome) }),
+          it.reflectionPreview ? h('span', { class: 'hint', text: it.reflectionPreview }) : null));
+      });
+      if (data.nextCursor) more.appendChild(env.U.button(t('review.more'), function () { load(data.nextCursor); }, { secondary: true }));
+    }
+    function drawError(res, cursor) {
+      more.textContent = '';
+      list.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) }));
+      more.appendChild(env.U.button(t('common.retry'), function () { load(cursor); }));
+    }
+
     function load(cursor) {
-      var p = { limit: 20 };
-      if (env.noGoal()) p.status = 'completed'; // активной цели нет: только архивные
-      if (cursor) p.cursor = cursor;
-      return env.call('history.list', p).then(function (res) {
-        more.textContent = '';
-        if (!res.ok) { list.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) })); more.appendChild(env.U.button(t('common.retry'), function () { load(cursor); })); return; }
-        if (!res.data.items.length && !cursor) list.appendChild(h('p', { class: 'hint', text: t('review.historyEmpty') }));
-        res.data.items.forEach(function (it) {
-          list.appendChild(h('button', { type: 'button', class: 'secondary history-row', onclick: function () { env.go('card', { goalId: it.goalId }); } },
-            h('strong', { text: it.title }),
-            h('span', { class: 'hint', text: F.period(it.startDate, it.endDate) }),
-            h('span', { text: t('review.histLine', { target: F.num(it.targetValue), unit: it.unit, final: F.num(it.finalValue), p: it.percent }) }),
-            h('span', { class: 'badge ' + (it.outcome === 'success' ? 'ok' : ''), text: outcomeText(env, it.outcome) }),
-            it.reflectionPreview ? h('span', { class: 'hint', text: it.reflectionPreview }) : null));
+      if (cursor) { // следующие страницы — обычный запрос, в кэш не идут
+        var p = { limit: 20, cursor: cursor };
+        if (env.noGoal()) p.status = 'completed';
+        return env.call('history.list', p).then(function (res) {
+          if (!res.ok) return drawError(res, cursor);
+          pages++;
+          drawItems(res.data, cursor);
         });
-        if (res.data.nextCursor) more.appendChild(env.U.button(t('review.more'), function () { load(res.data.nextCursor); }, { secondary: true }));
+      }
+      // первая страница: сохранённое сразу, свежее подменяет его тихо
+      var r = env.read(env.readSpec.historyList());
+      var shownJson = null;
+      if (r.cached) { drawItems(r.cached.data, null); shownJson = JSON.stringify(r.cached.data); r.shown(); }
+      return r.fresh.then(function (res) {
+        if (r.cached) {
+          if (!res.ok || pages > 1 || JSON.stringify(res.data) === shownJson) return; // свежих нет, либо уже подгружены другие страницы, либо то же самое
+          list.textContent = '';
+        }
+        if (!res.ok) return drawError(res, null);
+        drawItems(res.data, null);
       });
     }
     load();
@@ -4712,7 +5059,9 @@ window.GT_CONFIG = {
     var t = env.t;
     var F = env.F;
     var ro = env.readOnly();
-    return env.call('history.get', { goalId: params.goalId }).then(function (res) {
+    // Завершённая цель не меняется: из кэша — сразу и без запроса (обновляется после сохранения рефлексии); идущая цели — обычный запрос
+    var r = env.read(env.readSpec.card(params.goalId));
+    function build(res) {
       var box = h('div');
       if (!res.ok) { box.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) })); return box; }
       var d = res.data;
@@ -4738,7 +5087,9 @@ window.GT_CONFIG = {
         ro ? null : env.U.button(t('review.editReflection'), function () { env.go('reflection', { goalId: g.id, fromCard: true }); }, { secondary: true })));
       box.appendChild(env.U.button(t('review.toDashboard'), function () { env.go('dashboard', { goalId: g.id }); }, { secondary: true }));
       return box;
-    });
+    }
+    if (r.cached) { var el = build({ ok: true, data: r.cached.data }); r.shown(); return el; }
+    return r.fresh.then(build);
   };
 
   // Три поля рефлексии (S-32 и блок на S-33); mine — моя запись из history.get или undefined
@@ -4770,7 +5121,8 @@ window.GT_CONFIG = {
     var box = h('div');
     var err = h('p', { class: 'error', hidden: true });
 
-    return env.call('history.get', { goalId: goalId }).then(function (res) {
+    var rd = env.read(env.readSpec.card(goalId)); // запись самой рефлексии берём из кэша карточки, если она там есть
+    function build(res) {
       var form = reflectionFields(env, res.ok ? myReflection(env, res.data) : null);
       box.appendChild(h('h2', { text: t('reflection.title') }));
       if (res.ok) box.appendChild(h('p', { class: 'hint', text: res.data.goal.title }));
@@ -4787,7 +5139,9 @@ window.GT_CONFIG = {
       });
       box.appendChild(h('div', { class: 'actions' }, save, env.U.button(t('common.cancel'), function () { env.back(); }, { secondary: true })));
       return box;
-    });
+    }
+    if (rd.cached) { var el = build({ ok: true, data: rd.cached.data }); rd.shown(); return el; }
+    return rd.fresh.then(build);
   };
 
   // ---------- S-33 Итог цели (screens.md §3.7) ----------
@@ -4886,9 +5240,11 @@ window.GT_CONFIG = {
     var F = env.F;
     var U = env.U;
     var box = h('div');
-    return env.call('goal.get', { goalId: params.goalId }).then(function (res) {
-      if (!res.ok) { box.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) })); return box; }
-      var g = res.data.goal;
+    var touched = false; // человек уже вводит новую цель: свежие данные форму не перезаписывают
+    var shownJson = null;
+    function draw(data) {
+      box.textContent = '';
+      var g = data.goal;
       var preview = h('div', { class: 'card', hidden: true });
       var err = h('p', { class: 'error', hidden: true });
       var target = U.numberInput(g.targetValue, check, { negative: true, aria: t('raise.newTarget') });
@@ -4898,6 +5254,7 @@ window.GT_CONFIG = {
       var current = null;
 
       function check() {
+        touched = true;
         var v = U.parseNum(target.value);
         err.hidden = true; apply.disabled = true; preview.hidden = true;
         if (v === null || v === g.targetValue) return;
@@ -4940,8 +5297,22 @@ window.GT_CONFIG = {
       box.appendChild(err);
       box.appendChild(h('div', { class: 'actions' }, apply,
         U.button(t('common.cancel'), function () { if (params.onCancel) params.onCancel(); else env.back(); }, { secondary: true })));
+    }
+
+    // Сохранённые данные цели показываем сразу, свежие подменяют их тихо (но не поверх начатого ввода)
+    var rd = env.read(env.readSpec.goal(params.goalId));
+    if (rd.cached) { draw(rd.cached.data); shownJson = JSON.stringify(rd.cached.data); rd.shown(); }
+    var fresh = rd.fresh.then(function (res) {
+      if (!res.ok) {
+        if (rd.cached) return box;
+        box.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) }));
+        return box;
+      }
+      if (rd.cached && (touched || JSON.stringify(res.data) === shownJson)) return box;
+      draw(res.data);
       return box;
     });
+    return rd.cached ? box : fresh;
   };
 
   // ---------- S-40 Цель достигнута ----------
@@ -5024,6 +5395,11 @@ window.GT_CONFIG = {
   // ---------- Диагностика: последние запросы и время ответа сервера (для разработчика) ----------
   function reportText(env) {
     var t = env.t;
+    function ageText(ms) {
+      if (ms == null) return '—';
+      var s = Math.round(ms / 1000);
+      return s < 90 ? t('diag.ageSec', { n: s }) : s < 5400 ? t('diag.ageMin', { n: Math.round(s / 60) }) : t('diag.ageHour', { n: Math.round(s / 3600) });
+    }
     var d = env.diag;
     var sm = d.summary();
     var b = env.boot();
@@ -5050,8 +5426,16 @@ window.GT_CONFIG = {
         var withServer = r.attempts.some(function (a) { return a.serverMs != null; });
         var att = r.attempts.length > 1 || r.code !== 'ok' || withServer
           ? t('diag.attempts', { list: r.attempts.map(function (a) { return a.ms + ' ' + a.result + (a.serverMs != null ? t('diag.serverMs', { n: a.serverMs }) : ''); }).join(', ') }) : '';
+        var cm = r.cached ? t('diag.cachedMark', { shown: r.cached.shownMs != null ? r.cached.shownMs : '—', age: ageText(r.cached.ageMs) }) : '';
         lines.push(t('diag.line', { time: clock(r.startedAt), method: r.method, reason: r.reason ? t('diag.reasons.' + r.reason) : '—', since: r.sinceOpen != null ? r.sinceOpen : '—',
-          ms: r.ms, code: r.code, id: r.requestId, attempts: att }));
+          ms: r.ms, code: r.code, id: r.requestId, attempts: att + cm }));
+      });
+    }
+    var shown = d.cacheList();
+    if (shown.length) {
+      lines.push(t('diag.cacheHeader'));
+      shown.forEach(function (c) {
+        lines.push(t('diag.cacheLine', { time: clock(c.at), method: c.method, shown: c.shownMs, age: ageText(c.ageMs), refresh: t(c.refreshed ? 'diag.cacheRefresh' : 'diag.cacheNoRefresh') }));
       });
     }
     return lines.join('\n');
@@ -5101,13 +5485,16 @@ window.GT_CONFIG = {
     var U = env.U;
     var F = env.F;
     var owner = env.isOwner() && !env.readOnly();
-    return env.call('goal.get', { goalId: params.goalId }).then(function (res) {
-      var box = h('div');
-      if (!res.ok) { box.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) })); return box; }
-      var g = res.data.goal;
+    var box = h('div');
+    var dirty = false; // человек уже правит форму: свежие данные её не перезаписывают
+    var shownJson = null;
+    function draw(data) {
+      box.textContent = '';
+      var g = data.goal;
       var title = h('input', { type: 'text', value: g.title, disabled: !owner, 'aria-label': t('wizard.fTitle') });
       var unit = h('input', { type: 'text', value: g.unit, disabled: !owner, 'aria-label': t('wizard.fUnit') });
       var end = h('input', { type: 'date', value: g.endDate, disabled: !owner, min: env.todayStr(), 'aria-label': t('wizard.fEnd') });
+      [title, unit, end].forEach(function (el) { el.addEventListener('input', function () { dirty = true; }); el.addEventListener('change', function () { dirty = true; }); });
       var err = errorBox(env);
       var rev = g.rev;
       box.appendChild(h('h2', { text: t('settings.goal') }));
@@ -5130,6 +5517,7 @@ window.GT_CONFIG = {
               return showErr(err, env.S.errorText(r.error) + (fe ? ' (' + fe + ')' : ''));
             }
             rev = r.data.goal.rev;
+            dirty = false;
             env.boot().activeGoal.title = r.data.goal.title;
             env.toast(t('settings.saved'));
           });
@@ -5143,8 +5531,22 @@ window.GT_CONFIG = {
             });
           }, { danger: true })));
       }
+    }
+
+    // Сохранённое показываем сразу; свежее подменяет его тихо, но не поверх начатой правки
+    var rd = env.read(env.readSpec.goal(params.goalId));
+    if (rd.cached) { draw(rd.cached.data); shownJson = JSON.stringify(rd.cached.data); rd.shown(); }
+    var fresh = rd.fresh.then(function (res) {
+      if (!res.ok) {
+        if (rd.cached) return box; // свежих нет: остаётся сохранённое
+        box.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) }));
+        return box;
+      }
+      if (rd.cached && (dirty || JSON.stringify(res.data) === shownJson)) return box;
+      draw(res.data);
       return box;
     });
+    return rd.cached ? box : fresh;
   };
 
   // ---------- S-53 Действия ----------
@@ -5185,8 +5587,15 @@ window.GT_CONFIG = {
     }
 
     function load() {
-      return env.call('goal.get', { goalId: params.goalId }).then(function (res) {
-        if (!res.ok) { list.textContent = ''; list.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) })); return; }
+      var rd = env.read(env.readSpec.goal(params.goalId)); // сохранённый список сразу, свежий подменяет его тихо
+      var shownJson = null;
+      if (rd.cached) { data = rd.cached.data; drawList(); shownJson = JSON.stringify(data); rd.shown(); }
+      return rd.fresh.then(function (res) {
+        if (!res.ok) {
+          if (rd.cached) return; // свежих нет: остаётся сохранённое
+          list.textContent = ''; list.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) })); return;
+        }
+        if (JSON.stringify(res.data) === shownJson) return;
         data = res.data;
         drawList();
       });
@@ -5482,7 +5891,26 @@ window.GT_CONFIG = {
 
   // ---------- env: всё, что нужно экранам ----------
   function boot() { return desc && desc.boot ? desc.boot : flow.state.boot; }
-  // Дашборд и история грузятся только при открытии своей вкладки (в фоне после «Сегодня» их никто не подгружает: каждый запрос стоит ~3 с)
+  // Кэш чтений вкладок (gt:data:v2): область — окружение, кабинет и участник; чужой кабинет и другой участник кэша не видят
+  var dataCache = GT.dataCache.createDataCache({
+    getStorage: getStorage,
+    scope: function () {
+      var b = desc && desc.boot ? desc.boot : (flow && flow.state.boot);
+      if (!b || !b.cabinet || !b.me) return null;
+      return [b.env || cfg.EXPECTED_ENV, b.cabinet.id, b.me.memberId].join(':');
+    }
+  });
+  // Чтения вкладок поверх кэша и фоновая загрузка (логика и тесты — data-cache.js); очередь записи факта создаётся ниже, поэтому обращение отложенное
+  var tabData = GT.dataCache.createTabData({
+    cache: dataCache,
+    call: function (m, p, o2) { return env.call(m, p, o2); },
+    writes: { outstanding: function () { return writeQueue.outstanding(); }, idle: function () { return writeQueue.idle(); } },
+    boot: function () { return boot(); },
+    noGoal: function () { return env.noGoal(); },
+    clock: sinceOpen,
+    onShown: function (r) { GT.diag.cacheShown(r); }
+  });
+  var tabSpec = tabData.spec;
   var presetsPromise = null;
   var TAB_READS = /^(dashboard\.get|history\.list|history\.get)$/;
   var env = {
@@ -5491,11 +5919,18 @@ window.GT_CONFIG = {
     // opts.reason — причина запроса для «Диагностики»: start | action (по умолчанию) | tab (дашборд, история) | background
     call: function (method, params, opts) {
       var o = Object.assign({ reason: TAB_READS.test(method) ? 'tab' : 'action' }, opts);
+      dataCache.beforeWrite(method, params);
       return flow.call(method, params, o).then(function (res) {
+        dataCache.afterWrite(method, params, res);
         if (res.ok && (method === 'goal.complete' || method === 'goal.create')) forgetGoal(); // цель сменилась: черновики прежней цели не нужны
+        if (res.ok && method === 'reflection.save' && params && params.goalId) env.prefetch(tabSpec.card(params.goalId)); // карточка обновится в фоне, пока человек возвращается
         return res;
       });
     },
+    // Чтение для вкладки с кэшем: env.read(env.readSpec.dashboard(…)) → { cached, fresh, shown() }; описание — createTabData в data-cache.js
+    read: function (spec) { return tabData.read(spec); },
+    prefetch: function (spec) { return tabData.prefetch(spec); },
+    readSpec: tabSpec,
     // presets.list не меняется за сеанс: один запрос на сеанс, неудача в кэш не попадает
     presets: function (background) {
       if (!presetsPromise) {
@@ -5734,6 +6169,8 @@ window.GT_CONFIG = {
         lastBoot = d.boot;
         env.todayController().setStale(false);
         env.todayController().adoptBoot(d.boot.today);
+        dataCache.purge();
+        env.schedule(tabData.startBackground, 0);
         return;
       }
       if (todayCtrl) todayCtrl.setStale(false);
@@ -5758,6 +6195,8 @@ window.GT_CONFIG = {
     if (d.screen !== 'loading') GT.diag.mark('firstScreen', sinceOpen(), d.screen);
     showCurrent();
     syncTelegramButtons();
+    if (d.boot) dataCache.purge(); // записи чужого кабинета и участника не остаются
+    if (d.screen === 'today' && !d.cached) env.schedule(tabData.startBackground, 0);
   }
 
   // ---------- запуск ----------
