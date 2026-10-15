@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ДоЦели — макеты стиля</title>
+<!--
+  Цвета Telegram (вызывать при старте приложения; тему Telegram не наследуем):
+    Светлый:    setHeaderColor('#F7F3EC');  setBackgroundColor('#F7F3EC');  setBottomBarColor('#FFFDF9');
+    Изумрудный: setHeaderColor('#03301F');  setBackgroundColor('#001A11');  setBottomBarColor('#001A11');
+    Заставка (оба варианта): setHeaderColor('#03301F'); setBackgroundColor('#03301F');
+  (setHeaderColor принимает 'bg_color' / 'secondary_bg_color' или строку #RRGGBB.)
+
+  Перенос в приложение: взять нужный блок [data-theme="…"] из секции THEMES, заменить селектор на :root.
+  Шрифты локальные (fonts/*.woff2, font-display: swap), внешних запросов нет.
+-->
+<style>
+/* ===== Шрифты: Cormorant Garamond 500/600 (заголовки, крупные цифры), Manrope 400/600 (остальное) ===== */
+@font-face{font-family:"Cormorant Garamond";font-style:normal;font-weight:500 600;font-display:swap;src:url(fonts/cormorant-cyrillic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Cormorant Garamond";font-style:normal;font-weight:500 600;font-display:swap;src:url(fonts/cormorant-latin.woff2) format("woff2");unicode-range:U+0020-007E,U+00A0,U+00B7,U+2013,U+2039,U+2212}
+@font-face{font-family:"Manrope";font-style:normal;font-weight:400 600;font-display:swap;src:url(fonts/manrope-cyrillic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Manrope";font-style:normal;font-weight:400 600;font-display:swap;src:url(fonts/manrope-latin.woff2) format("woff2");unicode-range:U+0020-007E,U+00A0,U+00AB,U+00B7,U+00BB,U+2013,U+2014,U+2026,U+2039,U+203A,U+2212}
+@font-face{font-family:"Manrope";font-style:normal;font-weight:400 600;font-display:swap;src:url(fonts/manrope-latin-ext.woff2) format("woff2");unicode-range:U+20BD}
+
+/* ===== THEMES: только переменные. Один блок = один вариант ===== */
+[data-theme="light"]{
+  --bg:#F7F3EC; --bg-image:none;
+  --card:#FFFDF9; --card-shadow:0 8px 24px rgba(15,42,32,.05);
+  --text:#0F2A20; --muted:#566860;
+  --accent:#0B4A33; --accent-image:none;       /* цифры прогресса */
+  --btn-bg:#0B4A33; --btn-image:none; --btn-ink:#F7F3EC;
+  --line:#CDBFA3; --track:rgba(205,191,163,.45); --bar:#0B4A33; --bar-image:none;
+  --soft:#F1EBDF; --skel-a:#EFE9DC; --skel-b:#F9F5EC; --tg-head:#F7F3EC;
+}
+[data-theme="emerald"]{
+  --bg:#001A11; --bg-image:linear-gradient(180deg,#03301F 0%,#001A11 100%);
+  --card:#0A3B29; --card-shadow:0 16px 40px rgba(0,0,0,.35);
+  --text:#E8DFD3; --muted:rgba(232,223,211,.62);
+  --accent:#E8DFD3; --accent-image:linear-gradient(135deg,#E8DFD3,#B8AA8C);
+  --btn-bg:#CDBFA3; --btn-image:linear-gradient(135deg,#E8DFD3,#B8AA8C); --btn-ink:#03301F;
+  --line:rgba(205,191,163,.2); --track:rgba(205,191,163,.18); --bar:#CDBFA3; --bar-image:linear-gradient(90deg,#E8DFD3,#B8AA8C);
+  --soft:rgba(232,223,211,.08); --skel-a:#0A3B29; --skel-b:#12503A; --tg-head:#03301F;
+}
+
+/* ===== Общее ===== */
+*{box-sizing:border-box;margin:0}
+html{background:#1b1b1b}
+body{font:400 15px/1.45 Manrope,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#ddd;background:#1b1b1b;-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+.sw{display:flex;gap:8px;padding:8px 16px;max-width:430px;margin:0 auto;background:#1b1b1b;flex-wrap:wrap}
+.sw button{flex:1 1 0;min-width:0;font:inherit;font-size:13px;padding:8px 6px;border-radius:12px;border:1px solid #444;background:#2a2a2a;color:#ddd;cursor:pointer}
+.sw button[aria-pressed="true"]{background:#ddd;color:#111;border-color:#ddd}
+.sw-note{max-width:430px;margin:0 auto;padding:0 16px 8px;font-size:12px;color:#888}
+
+.phone{max-width:430px;margin:0 auto;min-height:100vh;position:relative;padding-bottom:104px;color:var(--text);background-color:var(--bg);background-image:var(--bg-image);font-feature-settings:"lnum"}
+.phone[data-view="load"]{background-image:linear-gradient(180deg,#03301F 0%,#001A11 100%);background-color:#001A11;color:#E8DFD3}
+.tghead{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--tg-head);font-size:15px;font-weight:600;border-bottom:1px solid var(--line)}
+.phone[data-view="load"] .tghead{background:#03301F;border-color:transparent}
+.tghead span{opacity:.6;font-weight:400;font-size:13px}
+.wrap{padding:16px 16px 24px}
+
+.card{background:var(--card);border-radius:24px;padding:24px;margin-bottom:16px;box-shadow:var(--card-shadow)}
+h2{font:600 22px/1.2 "Cormorant Garamond",Manrope,Georgia,"Times New Roman",serif;letter-spacing:.005em;margin-bottom:8px}
+.cap{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.num{font-family:"Cormorant Garamond",Manrope,Georgia,"Times New Roman",serif;font-weight:600;color:var(--accent);background-image:var(--accent-image);-webkit-background-clip:text;background-clip:text;font-variant-numeric:lining-nums}
+[data-theme="emerald"] .num{-webkit-text-fill-color:transparent}
+.hero{font-size:64px;line-height:1;letter-spacing:-.01em}
+.hero-of{margin-top:8px}
+.bar{height:8px;border-radius:99px;background:var(--track);overflow:hidden;margin:24px 0 16px}
+.bar>i{display:block;height:100%;border-radius:99px;background-color:var(--bar);background-image:var(--bar-image)}
+
+.dateline{display:flex;justify-content:flex-start;align-items:center;gap:8px;margin-bottom:16px}
+.dateline b{font:600 20px/1.2 "Cormorant Garamond",Manrope,Georgia,serif}
+.pill{font:inherit;font-size:13px;border-radius:99px;padding:8px 16px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer;white-space:nowrap}
+.row{display:flex;align-items:center;gap:8px;padding:16px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0;padding-top:8px}
+.row-main{flex:1;min-width:0}
+.row-main .t{font-weight:600}
+.row-val{font:600 28px/1 "Cormorant Garamond",Manrope,Georgia,serif;min-width:40px;text-align:center;font-variant-numeric:lining-nums}
+.row-val.empty{color:var(--muted);font-weight:500}
+.step{width:40px;height:40px;flex:none;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--text);font:inherit;font-size:20px;line-height:1;cursor:pointer;touch-action:manipulation}
+.norm-ok{border-color:var(--text)}
+.field{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:16px;border-top:1px solid var(--line)}
+.field label{flex:none;color:var(--muted);font-size:13px}
+.field input{flex:1;min-width:0;font:600 18px Manrope,system-ui,sans-serif;padding:8px 16px;border-radius:16px;border:1px solid var(--line);background:var(--soft);color:var(--text);text-align:right}
+.btn{display:block;width:100%;font:inherit;font-weight:600;padding:16px;border-radius:99px;border:0;cursor:pointer;touch-action:manipulation}
+.btn.primary{background-color:var(--btn-bg);background-image:var(--btn-image);color:var(--btn-ink)}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);margin-top:8px}
+.state{margin-top:8px}
+.task{display:flex;gap:16px;align-items:flex-start;padding:16px 0;border-top:1px solid var(--line)}
+.task:first-of-type{border-top:0;padding-top:8px}
+.task i{flex:none;width:24px;height:24px;border-radius:99px;border:1.5px solid var(--muted);margin-top:0}
+.task.done i{background:var(--muted);border-color:var(--muted)}
+.task.done span{text-decoration:line-through;color:var(--muted)}
+.undo{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:16px;padding:8px 8px 8px 24px;border-radius:99px;background:var(--card);box-shadow:var(--card-shadow)}
+
+.savebar{position:fixed;left:0;right:0;bottom:0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));max-width:430px;margin:0 auto;background:linear-gradient(180deg,transparent,var(--bg) 40%)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background-color:var(--btn-bg);background-image:var(--btn-image);color:var(--btn-ink);font-weight:600;padding:16px 24px;border-radius:99px;z-index:9;box-shadow:var(--card-shadow)}
+
+.hist-top{display:flex;justify-content:space-between;align-items:baseline;gap:16px}
+.hist-top h2{margin:0}
+.res{font-size:13px;font-weight:600;white-space:nowrap}
+.hist-num{margin-top:16px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.hist-num .num{font-size:36px;line-height:1}
+.quote{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+
+/* заставка */
+.splash{display:flex;flex-direction:column;align-items:center;padding:24px 0 8px}
+.splash img{width:min(280px,72vw);height:auto;display:block;mix-blend-mode:lighten;-webkit-mask-image:radial-gradient(circle at 50% 50%,#000 52%,transparent 71%);mask-image:radial-gradient(circle at 50% 50%,#000 52%,transparent 71%)}
+.sk{border-radius:12px;background:linear-gradient(90deg,var(--skel-a),var(--skel-b),var(--skel-a));background-size:200% 100%;animation:sh 1.4s linear infinite}
+.sk.a{height:16px;width:40%;margin-bottom:24px}
+.sk.b{height:56px;width:70%;margin-bottom:24px}
+.sk.c{height:8px;width:100%;border-radius:99px;margin-bottom:16px}
+.sk.d{height:16px;width:80%}
+.sk.r{height:40px;width:100%;margin-bottom:16px}
+@keyframes sh{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}
+</style>
+</head>
+<body>
+<div class="sw" id="themeSw" role="group" aria-label="Вариант">
+  <button data-t="light" aria-pressed="true">Светлый</button>
+  <button data-t="emerald" aria-pressed="false">Изумрудный</button>
+</div>
+<div class="sw" id="viewSw" role="group" aria-label="Экран" style="padding-top:0">
+  <button data-v="today" aria-pressed="true">Сегодня</button>
+  <button data-v="history" aria-pressed="false">История</button>
+  <button data-v="load" aria-pressed="false">Заставка</button>
+</div>
+<div class="sw-note" id="tgNote"></div>
+
+<div class="phone" id="phone" data-theme="light" data-view="today">
+  <div class="tghead">ДоЦели <span>шапка Telegram</span></div>
+
+  <!-- ===== СЕГОДНЯ (S-10) ===== -->
+  <main class="wrap" id="v-today">
+    <div class="dateline">
+      <button class="pill" type="button">‹ вчера</button>
+      <b>Сегодня, 15 октября</b>
+    </div>
+
+    <section class="card">
+      <div class="cap">400 000 ₽ за месяц</div>
+      <div class="num hero">238 000</div>
+      <div class="hero-of muted">из 400 000 ₽</div>
+      <div class="bar" role="progressbar" aria-valuenow="238000" aria-valuemin="0" aria-valuemax="400000"><i style="width:59.5%"></i></div>
+      <div class="small muted">осталось 162 000 · 13 дней · серия 6</div>
+    </section>
+
+    <div class="undo" id="undo" hidden><span>Нормы выполнены</span><button class="pill" type="button" id="btnUndo">Отменить</button></div>
+
+    <section class="card">
+      <h2>Факт дня</h2>
+      <div id="rows"></div>
+      <div class="field">
+        <label for="sum">Сколько сейчас, ₽</label>
+        <input id="sum" inputmode="numeric" value="238000">
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Итог дня</h2>
+      <div><span class="num" style="font-size:28px" id="doneN">1 из 3</span> <span class="muted" id="donePct">· 33 %</span></div>
+      <div class="small muted state" id="dayState">Внесено 1 из 3 действий</div>
+      <div class="small muted" style="margin-top:4px">Алекс: 3 из 3 · внёс</div>
+      <div style="margin-top:16px">
+        <button class="btn ghost" type="button" id="btnFinish" style="margin-top:0">Готово на сегодня</button>
+        <button class="btn ghost" type="button" id="btnAll">Все нормы выполнены</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Задачи</h2>
+      <div class="task"><i></i><div><span>Отправить КП Ромашке</span><br><small class="muted">просрочено · вчера</small></div></div>
+      <div class="task"><i></i><div><span>Созвониться с поставщиком</span><br><small class="muted">сегодня</small></div></div>
+      <div class="task done"><i></i><div><span>Обновить прайс</span><br><small class="muted">сегодня</small></div></div>
+      <button class="pill" type="button" style="margin-top:8px">+ задача</button>
+    </section>
+  </main>
+
+  <div class="savebar" id="savebar" hidden>
+    <button class="btn primary" type="button" id="btnSave">Сохранить</button>
+  </div>
+  <div class="toast" id="toast" hidden>Сохранено</div>
+
+  <!-- ===== ИСТОРИЯ (S-30) ===== -->
+  <main class="wrap" id="v-history" hidden>
+    <section class="card">
+      <div class="hist-top"><h2>400 000 ₽ за месяц</h2><span class="res muted">идёт</span></div>
+      <div class="small muted">15.09 – 15.10</div>
+      <div class="hist-num"><span class="num">238 000</span><span class="muted small">из 400 000 ₽ · 59,5 %</span></div>
+    </section>
+    <section class="card">
+      <div class="hist-top"><h2>250 000 ₽ за месяц</h2><span class="res">Успех</span></div>
+      <div class="small muted">15.08 – 14.09</div>
+      <div class="hist-num"><span class="num">268 400</span><span class="muted small">из 250 000 ₽ · 107 %</span></div>
+      <div class="quote">Какие ошибки: два дня пропустили звонки из-за поездки, догоняли в выходные.</div>
+    </section>
+    <section class="card">
+      <div class="hist-top"><h2>150 000 ₽ за месяц</h2><span class="res muted">Не успех</span></div>
+      <div class="small muted">15.07 – 14.08</div>
+      <div class="hist-num"><span class="num">121 000</span><span class="muted small">из 150 000 ₽ · 81 %</span></div>
+      <div class="quote">Какие ошибки: слишком мало встреч в первой половине, норму подняли поздно.</div>
+    </section>
+    <section class="card">
+      <div class="hist-top"><h2>100 000 ₽ за месяц</h2><span class="res">Успех</span></div>
+      <div class="small muted">15.06 – 14.07</div>
+      <div class="hist-num"><span class="num">112 500</span><span class="muted small">из 100 000 ₽ · 113 %</span></div>
+      <div class="quote">Какие ошибки: не вносили факт по вечерам, часть данных восстанавливали по памяти.</div>
+    </section>
+  </main>
+
+  <!-- ===== ЗАСТАВКА ===== -->
+  <main class="wrap" id="v-load" hidden>
+    <div class="splash"><img src="no-reason-logo.webp" width="600" height="600" alt="No Reason"></div>
+    <div class="card"><div class="sk a"></div><div class="sk b"></div><div class="sk c"></div><div class="sk d"></div></div>
+    <div class="card"><div class="sk a"></div><div class="sk r"></div><div class="sk r"></div><div class="sk r"></div></div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var phone=document.getElementById('phone');
+  var NOTE={light:'Telegram: header и background #F7F3EC, нижняя панель #FFFDF9',emerald:'Telegram: header #03301F, background и нижняя панель #001A11'};
+  function press(root,attr,val){[].forEach.call(root.querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',b.getAttribute(attr)===val?'true':'false')})}
+  function setTheme(t){phone.setAttribute('data-theme',t);press(document.getElementById('themeSw'),'data-t',t);document.getElementById('tgNote').textContent=NOTE[t];try{localStorage.setItem('dp2:theme',t)}catch(e){}}
+  function setView(v){phone.setAttribute('data-view',v);['today','history','load'].forEach(function(n){document.getElementById('v-'+n).hidden=n!==v});press(document.getElementById('viewSw'),'data-v',v);updateSave()}
+  document.getElementById('themeSw').addEventListener('click',function(e){var t=e.target.getAttribute('data-t');if(t)setTheme(t)});
+  document.getElementById('viewSw').addEventListener('click',function(e){var v=e.target.getAttribute('data-v');if(v)setView(v)});
+
+  var acts=[{n:'Звонки',norm:15,saved:15,v:15},{n:'Встречи',norm:3,saved:null,v:null},{n:'Коммерческие предложения',norm:2,saved:null,v:null,note:'норма выросла: было 1'}];
+  var savedSum='238000',rows=document.getElementById('rows'),sum=document.getElementById('sum'),undoSnap=null,undoT,toastT;
+  function dirty(){return acts.some(function(a){return a.v!==a.saved})||sum.value!==savedSum}
+  function render(){
+    rows.innerHTML='';
+    acts.forEach(function(a,i){
+      var r=document.createElement('div');r.className='row';
+      r.innerHTML='<div class="row-main"><div class="t">'+a.n+'</div><div class="small muted">норма '+a.norm+(a.note?' · '+a.note:'')+(a.v!==null&&a.v>=a.norm?' · выполнено':'')+(a.v!==a.saved?' · не сохранено':'')+'</div></div>'+
+        '<button class="step" data-i="'+i+'" data-d="-1" aria-label="Минус">−</button>'+
+        '<div class="row-val'+(a.v===null?' empty':'')+'">'+(a.v===null?'—':a.v)+'</div>'+
+        '<button class="step" data-i="'+i+'" data-d="1" aria-label="Плюс">+</button>';
+      rows.appendChild(r);
+    });
+    var done=acts.filter(function(a){return a.v!==null&&a.v>=a.norm}).length,entered=acts.filter(function(a){return a.saved!==null}).length;
+    document.getElementById('doneN').textContent=done+' из 3';
+    document.getElementById('donePct').textContent='· '+Math.round(done/3*100)+' %';
+    document.getElementById('dayState').textContent=entered===3?'День внесён ✓':'Внесено '+entered+' из 3 действий';
+    updateSave();
+  }
+  function updateSave(){document.getElementById('savebar').hidden=!dirty()||phone.getAttribute('data-view')!=='today'}
+  rows.addEventListener('click',function(e){
+    var b=e.target.closest('.step');if(!b)return;
+    var a=acts[+b.getAttribute('data-i')],d=+b.getAttribute('data-d');
+    if(d<0&&a.v===null)return;
+    a.v=Math.max(0,(a.v===null?0:a.v)+d);render();
+  });
+  sum.addEventListener('input',render);
+  function toast(){var t=document.getElementById('toast');t.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true},2000)}
+  function save(){acts.forEach(function(a){a.saved=a.v});savedSum=sum.value;render();toast()}
+  document.getElementById('btnSave').addEventListener('click',save);
+  document.getElementById('btnFinish').addEventListener('click',function(){acts.forEach(function(a){if(a.v===null)a.v=0});save()});
+  document.getElementById('btnAll').addEventListener('click',function(){
+    undoSnap=acts.map(function(a){return{v:a.v,saved:a.saved}});
+    acts.forEach(function(a){if(a.v===null||a.v<a.norm)a.v=a.norm});save();
+    var u=document.getElementById('undo');u.hidden=false;clearTimeout(undoT);undoT=setTimeout(function(){u.hidden=true;undoSnap=null},10000);
+  });
+  document.getElementById('btnUndo').addEventListener('click',function(){
+    if(!undoSnap)return;acts.forEach(function(a,i){a.v=undoSnap[i].v});undoSnap=null;
+    document.getElementById('undo').hidden=true;clearTimeout(undoT);save();
+  });
+
+  var t='light';try{t=localStorage.getItem('dp2:theme')||'light'}catch(e){}
+  setTheme(t==='emerald'?'emerald':'light');render();
+})();
+</script>
+</body>
+</html>
