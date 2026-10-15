@@ -961,11 +961,15 @@ window.GT_CONFIG = {
 
     // → { cached: {data, at}|null, fresh: Promise|null, shown() }. cached показывают сразу и вызывают shown() (замер для «Диагностики»);
     // fresh — запрос за свежим (null, если данные не меняются и они уже есть).
+    var refreshedOnce = {};
     function read(s) {
       var t0 = clock();
       var hit = cache.get(s.kind, s.goalId, s.extra);
       var info = hit ? { ageMs: now() - hit.at, shownMs: null } : null;
-      var needFresh = !(hit && s.immutable);
+      // неизменяемое из кэша обновляется один раз за сеанс (рефлексию мог поправить второй участник)
+      var mark = s.kind + SEP + s.goalId + SEP + s.extra;
+      var needFresh = !(hit && s.immutable && refreshedOnce[mark]);
+      if (s.immutable) refreshedOnce[mark] = true;
       var fresh = needFresh ? fetchRead(s, 'tab', info) : null;
       return {
         cached: hit, fresh: fresh,
@@ -5088,7 +5092,15 @@ window.GT_CONFIG = {
       box.appendChild(env.U.button(t('review.toDashboard'), function () { env.go('dashboard', { goalId: g.id }); }, { secondary: true }));
       return box;
     }
-    if (r.cached) { var el = build({ ok: true, data: r.cached.data }); r.shown(); return el; }
+    if (r.cached) {
+      var el = build({ ok: true, data: r.cached.data });
+      var shownJson = JSON.stringify(r.cached.data);
+      r.shown();
+      if (r.fresh) r.fresh.then(function (res) { // свежее подменяет тихо, только если отличается; ошибка — остаётся сохранённое
+        if (res.ok && JSON.stringify(res.data) !== shownJson) { el.textContent = ''; el.appendChild(build(res)); }
+      });
+      return el;
+    }
     return r.fresh.then(build);
   };
 
