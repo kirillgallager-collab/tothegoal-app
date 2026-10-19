@@ -19,7 +19,7 @@ window.GT_CONFIG = {
   var S = {
     app: { name: 'ДоЦели' },
 
-    tabs: { today: 'Сегодня', dashboard: 'Дашборд', history: 'История', settings: 'Настройки' },
+    tabs: { label: 'Разделы', today: 'Сегодня', dashboard: 'Дашборд', history: 'История', settings: 'Настройки' },
 
     common: {
       retry: 'Повторить',
@@ -196,9 +196,10 @@ window.GT_CONFIG = {
 
     settings: {
       title: 'Настройки', goal: 'Цель', actions: 'Действия', messages: 'Сообщения Telegram', members: 'Участники', cabinet: 'Кабинет',
-      save: 'Сохранить', saved: 'Сохранено', conflict: 'Данные изменились на другом устройстве. Откройте экран заново.',
+      theme: 'Тема', save: 'Сохранить', saved: 'Сохранено', conflict: 'Данные изменились на другом устройстве. Откройте экран заново.',
       betaVersion: 'Версия беты: {v} · окружение {env}', report: 'Сообщить о проблеме', copyReport: 'Скопировать отчёт'
     },
+    theme: { auto: 'Авто', light: 'Светлая', dark: 'Тёмная' },
     diag: {
       title: 'Диагностика', hint: 'Для разработчика: последние запросы к серверу и время ответа. Если что-то не работает, нажмите «Скопировать» и пришлите текст.',
       header: 'ДоЦели · диагностика · окружение {env} · режим {mode} · версия {version} · {when}',
@@ -305,6 +306,8 @@ window.GT_CONFIG = {
       not_available: 'Недоступно в бете.',
       consent_required: 'Нужно согласие на обработку данных.',
       consent_outdated: 'Политика обновилась, обновляем.',
+      health_consent_required: 'Нужно согласие на обработку сведений о здоровье.',
+      health_consent_outdated: 'Текст согласия обновился, обновляем.',
       email_in_use: 'Этот адрес уже используется.',
       email_already_set: 'Email уже указан.'
     }
@@ -1039,6 +1042,67 @@ window.GT_CONFIG = {
 })(globalThis);
 
 ;
+// Тема (контракт 10): «Авто» / «Светлая» / «Тёмная». Выбор только на устройстве (localStorage, ключ tothegoal.theme), на сервер не уходит.
+// «Авто» выбирает нашу палитру по Telegram.WebApp.colorScheme и следует за событием themeChanged; themeParams не используются.
+(function (root) {
+  'use strict';
+
+  var KEY = 'tothegoal.theme';
+  var PREFS = ['auto', 'light', 'dark'];
+  // Цвета шапки, фона и нижней панели Telegram — те же, что --bg и --card в css/theme.css
+  // btn/ink — цвет акцента (--btn-bg) и текст на нём (--btn-ink) для MainButton
+  var TG_COLORS = { light: { bg: '#F7F3EC', bar: '#FFFDF9', btn: '#0B4A33', ink: '#F7F3EC' }, dark: { bg: '#121614', bar: '#1B201D', btn: '#E0D3B8', ink: '#121614' } };
+
+  function normalize(pref) { return PREFS.indexOf(pref) >= 0 ? pref : 'auto'; }
+  function resolve(pref, scheme) { return pref === 'light' || pref === 'dark' ? pref : scheme === 'dark' ? 'dark' : 'light'; }
+
+  // o: getStorage() → Storage, getTg() → Telegram.WebApp | null, isDark() → bool (запасной вариант вне Telegram), root — элемент <html>
+  function createTheme(o) {
+    var mem = null;
+    function store() { try { return o.getStorage ? o.getStorage() : null; } catch (e) { return null; } }
+    function get() {
+      var s = store();
+      try { if (s) return normalize(s.getItem(KEY)); } catch (e) { /* хранилище недоступно */ }
+      return normalize(mem);
+    }
+    function scheme() {
+      var tg = o.getTg ? o.getTg() : null;
+      if (tg && tg.colorScheme) return tg.colorScheme;
+      return o.isDark && o.isDark() ? 'dark' : 'light';
+    }
+    function apply() {
+      var name = resolve(get(), scheme());
+      if (o.root) o.root.setAttribute('data-theme', name);
+      var tg = o.getTg ? o.getTg() : null;
+      if (tg) {
+        var c = TG_COLORS[name];
+        try { tg.setHeaderColor(c.bg); } catch (e) { /* старый клиент Telegram */ }
+        try { tg.setBackgroundColor(c.bg); } catch (e) { /* старый клиент Telegram */ }
+        try { tg.setBottomBarColor(c.bar); } catch (e) { /* старый клиент Telegram */ }
+      }
+      return name;
+    }
+    function set(pref) {
+      var p = normalize(pref);
+      mem = p;
+      var s = store();
+      try { if (s) s.setItem(KEY, p); } catch (e) { /* остаётся в памяти страницы */ }
+      return apply();
+    }
+    function init() {
+      var tg = o.getTg ? o.getTg() : null;
+      if (tg && tg.onEvent) tg.onEvent('themeChanged', apply);
+      return apply();
+    }
+    return { get: get, set: set, apply: apply, init: init, resolved: function () { return resolve(get(), scheme()); } };
+  }
+
+  var api = { KEY: KEY, PREFS: PREFS, TG_COLORS: TG_COLORS, resolve: resolve, createTheme: createTheme };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else { root.GT = root.GT || {}; root.GT.theme = api; }
+})(globalThis);
+
+;
 // Чистая логика выбора экрана (screens.md §1): разбор startapp, проверка env, стартовая логика.
 // Без DOM и сети; браузер и Node.
 (function (root) {
@@ -1159,6 +1223,59 @@ window.GT_CONFIG = {
     bootAfterCreate: bootAfterCreate, bootAfterComplete: bootAfterComplete, bootAfterSummary: bootAfterSummary };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.GT = root.GT || {}; root.GT.router = api; }
+})(globalThis);
+
+;
+// Правила каркаса (screens.md §1, контракт 10): когда видны меню-пилюля, BackButton и MainButton «Сохранить». Без DOM; браузер и Node.
+(function (root) {
+  'use strict';
+
+  var router = (typeof module !== 'undefined' && module.exports) ? require('./router.js') : root.GT.router;
+
+  // Подэкраны вкладок, где меню нет (экраны-сценарии): мастер (из S-41 и «Повторить эту цель») и «Цель» S-51.
+  // Остальные экраны без меню (S-02…S-06, S-33, S-40, загрузка, ошибки) — это отдельные экраны запуска (desc.screen ≠ 'today').
+  var NO_MENU_SUB = { wizard: true, goalSettings: true };
+
+  function top(nav) { return nav.stack.length ? nav.stack[nav.stack.length - 1].name : null; }
+
+  // Меню-пилюля: на рабочих экранах («Сегодня», вкладки и их подэкраны, S-41); справка — поверх, меню скрыто.
+  function menuVisible(desc, nav, helpOpen) {
+    if (!desc || desc.screen !== 'today' || helpOpen) return false;
+    return !NO_MENU_SUB[top(nav)];
+  }
+
+  // Экранная клавиатура: окно стало ниже самой большой высоты (> 20 %) и в фокусе поле ввода.
+  function keyboardOpen(baseHeight, height, editing) {
+    return !!editing && baseHeight > 0 && height < baseHeight * 0.8;
+  }
+
+  // BackButton: inner — выбор самого экрана: undefined — по умолчанию, false — скрыть, функция — свой шаг назад (шаг мастера).
+  // Справка закрывается BackButton; на корневых экранах (вкладки без подэкрана, запуск, доступ, согласия, S-33, S-40) кнопки нет.
+  function backVisible(desc, nav, helpOpen, inner) {
+    if (helpOpen) return true;
+    if (inner === false) return false;
+    if (typeof inner === 'function') return true;
+    return !!desc && desc.screen === 'today' && nav.stack.length > 0;
+  }
+
+  // MainButton «Сохранить»: только «Сегодня» (без подэкранов и справки) и только при несохранённом
+  function mainButtonVisible(desc, nav, helpOpen, unsaved) {
+    return !!unsaved && router.saveButtonAllowed(desc, nav, helpOpen);
+  }
+
+  // Значки пунктов меню (из design-preview): [тег, атрибуты] в SVG 24×24
+  var TAB_ICONS = {
+    today: [['path', { d: 'M8 2v4' }], ['path', { d: 'M16 2v4' }], ['rect', { width: '18', height: '18', x: '3', y: '4', rx: '2' }], ['path', { d: 'M3 10h18' }], ['path', { d: 'm9 16 2 2 4-4' }]],
+    dashboard: [['line', { x1: '18', x2: '18', y1: '20', y2: '10' }], ['line', { x1: '12', x2: '12', y1: '20', y2: '4' }], ['line', { x1: '6', x2: '6', y1: '20', y2: '14' }]],
+    history: [['path', { d: 'M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8' }], ['path', { d: 'M3 3v5h5' }], ['path', { d: 'M12 7v5l4 2' }]],
+    settings: [['line', { x1: '21', x2: '14', y1: '4', y2: '4' }], ['line', { x1: '10', x2: '3', y1: '4', y2: '4' }], ['line', { x1: '21', x2: '12', y1: '12', y2: '12' }],
+      ['line', { x1: '8', x2: '3', y1: '12', y2: '12' }], ['line', { x1: '21', x2: '16', y1: '20', y2: '20' }], ['line', { x1: '12', x2: '3', y1: '20', y2: '20' }],
+      ['line', { x1: '14', x2: '14', y1: '2', y2: '6' }], ['line', { x1: '8', x2: '8', y1: '10', y2: '14' }], ['line', { x1: '16', x2: '16', y1: '18', y2: '22' }]]
+  };
+
+  var api = { NO_MENU_SUB: NO_MENU_SUB, TAB_ICONS: TAB_ICONS, menuVisible: menuVisible, keyboardOpen: keyboardOpen, backVisible: backVisible, mainButtonVisible: mainButtonVisible };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else { root.GT = root.GT || {}; root.GT.chrome = api; }
 })(globalThis);
 
 ;
@@ -1474,6 +1591,11 @@ window.GT_CONFIG = {
     return e;
   }
 
+  // Проверка согласия на здоровье по api.md §7 («после прав и валидации params, до записи»): server.js взводит её
+  // перед методом, а validator.done() срабатывает после проверки полей — ошибка валидации приходит раньше health_consent_required.
+  var armedHealth = null;
+  function armHealthGuard(fn) { armedHealth = fn; }
+
   function validator(p) {
     var fields = [];
     var v = {
@@ -1506,7 +1628,10 @@ window.GT_CONFIG = {
         if (list.indexOf(x) < 0) { v.bad(f, 'bad_format'); return undefined; }
         return x;
       },
-      done: function () { if (fields.length) throw fail('validation_failed', { fields: fields }); }
+      done: function () {
+        if (fields.length) throw fail('validation_failed', { fields: fields });
+        if (armedHealth) { var guard = armedHealth; armedHealth = null; guard(); }
+      }
     };
     return v;
   }
@@ -1520,6 +1645,63 @@ window.GT_CONFIG = {
   }
   function memberById(S, id) { return S.members.find(function (m) { return m.id === id; }) || null; }
   function activeMembers(S) { return S.members.filter(function (m) { return m.status === 'active'; }); }
+  // Участники цели: вышедшие после отзыва согласия на сведения о здоровье (Goal.leftMemberIds) не учитываются (api.md, контракт 10.1)
+  function goalMembers(S, goal) {
+    var left = goal.leftMemberIds || [];
+    return activeMembers(S).filter(function (m) { return left.indexOf(m.id) < 0; });
+  }
+
+  // ---------- согласие на сведения о здоровье (контракты 10, 10.1) ----------
+  // Умолчания как у сервера: версия "1", группы ["body","habits"]. У пресетов заглушки поля group нет (придёт с контрактом 11),
+  // поэтому требование срабатывает, только когда в S.presetGroups задано соответствие «пресет → группа» (тесты и сценарии health-*).
+  var HEALTH_METHODS = ['goal.create', 'goal.update', 'goal.complete', 'goal.raiseBar', 'goal.dismissReached',
+    'action.create', 'action.update', 'action.archive', 'task.create', 'task.update', 'task.setDone', 'task.archive',
+    'fact.set', 'day.save', 'day.completeAll', 'day.finish', 'reflection.save'];
+  function healthVersion(S) { return S.healthVersion || '1'; }
+  function healthGroups(S) { return S.healthGroups || ['body', 'habits']; }
+  function healthView(S) {
+    var u = S.user;
+    var acceptedVersion = u && u.healthConsentVersion || null;
+    return { given: acceptedVersion !== null && acceptedVersion === healthVersion(S), version: healthVersion(S),
+      acceptedVersion: acceptedVersion, acceptedAt: u && u.healthConsentAt || null };
+  }
+  function isHealthGoal(S, goal) {
+    var g = goal && goal.presetId && S.presetGroups && S.presetGroups[goal.presetId];
+    return !!g && healthGroups(S).indexOf(g) >= 0;
+  }
+  // Правило для 17 методов записи: цель группы здоровья (по цели, действию или задаче) и нет действующего согласия → health_consent_required
+  function healthGuard(ctx, method, p) {
+    var S = ctx.S;
+    if (HEALTH_METHODS.indexOf(method) < 0 || healthView(S).given) return;
+    var goal = null;
+    if (method === 'goal.create') goal = { presetId: p.presetId };
+    else if (p.goalId) goal = S.goals.find(function (g) { return g.id === p.goalId; });
+    else {
+      var item = p.actionId ? S.actions.find(function (a) { return a.id === p.actionId; })
+        : p.taskId ? S.tasks.find(function (t) { return t.id === p.taskId; }) : null;
+      goal = item && S.goals.find(function (g) { return g.id === item.goalId; });
+    }
+    if (isHealthGoal(S, goal)) throw fail('health_consent_required', { version: healthVersion(S) });
+  }
+  function removeGoalData(S, goalIds, memberId) { // memberId не задан → цели целиком; задан → только данные этого участника
+    var own = function (x) { return memberId == null || x.ownerMemberId === memberId; };
+    var gone = S.actions.filter(function (a) { return goalIds.indexOf(a.goalId) >= 0 && own(a); }).map(function (a) { return a.id; });
+    S.actions = S.actions.filter(function (a) { return gone.indexOf(a.id) < 0; });
+    Object.keys(S.facts).forEach(function (k) { if (gone.indexOf(k.split('|')[0]) >= 0) delete S.facts[k]; });
+    Object.keys(S.plans).forEach(function (k) { if (gone.indexOf(k.split('|')[2]) >= 0) delete S.plans[k]; });
+    var mine = function (x, id) { return goalIds.indexOf(x.goalId) >= 0 && (memberId == null || id === memberId); };
+    S.progress = S.progress.filter(function (e) { return !mine(e, e.memberId); });
+    S.reflections = S.reflections.filter(function (r) { return !mine(r, r.authorMemberId); });
+    if (memberId == null) {
+      S.tasks = S.tasks.filter(function (t) { return goalIds.indexOf(t.goalId) < 0; });
+      S.revisions = S.revisions.filter(function (r) { return goalIds.indexOf(r.goalId) < 0; });
+    } else {
+      S.tasks.forEach(function (t) {
+        if (goalIds.indexOf(t.goalId) >= 0) t.assigneeMemberIds = t.assigneeMemberIds.filter(function (id) { return id !== memberId; });
+      });
+    }
+  }
+
   function entriesOf(S, goalId) { return S.progress.filter(function (e) { return e.goalId === goalId; }); }
   function factVal(S, actionId, date) {
     var v = S.facts[actionId + '|' + date];
@@ -1685,7 +1867,7 @@ window.GT_CONFIG = {
         value: goal.inputMode === 'delta'
           ? K.round2(entriesToday.filter(function (e) { return me && e.memberId === me.id; }).reduce(function (s, e) { return s + e.value; }, 0))
           : K.round2(value) },
-      members: activeMembers(S).map(function (m) {
+      members: goalMembers(S, goal).map(function (m) {
         var pf = planFactOf(ctx, goal, m.id, date);
         return { id: m.id, displayName: m.displayName, factEntered: dayEntered(S, goal, m.id, date),
           doneCount: pf.doneCount, totalCount: pf.totalCount, percent: pf.percent, percentRaw: pf.percentRaw };
@@ -1921,7 +2103,7 @@ window.GT_CONFIG = {
     var role = !me ? 'none' : me.status === 'active' ? me.role : 'readonly';
     var writable = access === 'active';
     return {
-      mode: S.mode, env: S.env, consent: consent,
+      mode: S.mode, env: S.env, consent: consent, healthConsent: healthView(S),
       user: { id: S.user.id, telegramId: S.user.telegramId, firstName: S.user.firstName, username: S.user.username },
       me: access === 'none' ? null : { memberId: me.id }, // своя запись в кабинете; клиент ищет себя по ней, а не по роли
       notifyStatus: S.user.notifyStatus, access: access, role: role,
@@ -1956,6 +2138,51 @@ window.GT_CONFIG = {
       S.user.consentAt = ctx.nowIso;
     } // иначе повтор: acceptedAt не перезаписывается
     return { consent: { acceptedVersion: S.user.consentVersion, acceptedAt: S.user.consentAt } };
+  };
+
+  M['healthConsent.accept'] = function (ctx, p) {
+    var S = ctx.S;
+    var v = validator(p);
+    var version = v.str('version');
+    v.done();
+    if (version !== healthVersion(S)) throw fail('health_consent_outdated');
+    S.user.healthConsentVersion = version;
+    S.user.healthConsentAt = ctx.nowIso; // повтор с той же версией перезаписывает время
+    if (ctx.me) { // возврат участника: он снова в целях кабинета, план/факт считается с даты возврата
+      S.goals.forEach(function (g) {
+        var i = (g.leftMemberIds || []).indexOf(ctx.me.id);
+        if (i < 0) return;
+        g.leftMemberIds.splice(i, 1);
+        g.returnedOn = g.returnedOn || {};
+        g.returnedOn[ctx.me.id] = ctx.today;
+      });
+    }
+    return { healthConsent: healthView(S) };
+  };
+
+  M['healthConsent.revoke'] = function (ctx) {
+    var S = ctx.S;
+    var deletedGoals = 0;
+    var leftGoals = 0;
+    if (S.cabinet && ctx.me) {
+      var health = S.goals.filter(function (g) { return isHealthGoal(S, g); });
+      if (ctx.role === 'owner') { // цели групп здоровья удаляются целиком, с данными всех участников
+        var ids = health.map(function (g) { return g.id; });
+        removeGoalData(S, ids, null);
+        S.goals = S.goals.filter(function (g) { return ids.indexOf(g.id) < 0; });
+        deletedGoals = ids.length;
+      } else { // участник: удаляются только его данные, он выходит из целей, цели остаются у остальных
+        health.forEach(function (g) {
+          if ((g.leftMemberIds || []).indexOf(ctx.me.id) >= 0) return;
+          removeGoalData(S, [g.id], ctx.me.id);
+          g.leftMemberIds = (g.leftMemberIds || []).concat(ctx.me.id);
+          leftGoals++;
+        });
+      }
+    }
+    S.user.healthConsentVersion = null;
+    S.user.healthConsentAt = null;
+    return { healthConsent: healthView(S), deletedGoals: deletedGoals, leftGoals: leftGoals };
   };
 
   M['presets.list'] = function () { return { presets: PRESETS }; };
@@ -2573,7 +2800,7 @@ window.GT_CONFIG = {
       var d = K.addDays(upTo, -i);
       var delta = currentValue(S, g, d) - (d > g.startDate ? currentValue(S, g, K.addDays(d, -1)) : g.startValue);
       // open: текущий день активной цели ещё не закрыт, данные могут измениться; «не внесён» у него не пропуск
-      days.push({ date: d, open: g.status !== 'completed' && d === ctx.today, progressDelta: K.round2(delta), perMember: activeMembers(S).map(function (m) {
+      days.push({ date: d, open: g.status !== 'completed' && d === ctx.today, progressDelta: K.round2(delta), perMember: goalMembers(S, g).map(function (m) {
         var pf = planFactOf(ctx, g, m.id, d);
         return { memberId: m.id, percent: pf.percent, percentRaw: pf.percentRaw, missing: !dayEntered(S, g, m.id, d) };
       }) });
@@ -2583,7 +2810,7 @@ window.GT_CONFIG = {
       goal: pubGoal(g),
       progress: { currentValue: K.round2(value), startValue: g.startValue, targetValue: g.targetValue, percent: pr.percent, percentRaw: pr.percentRaw, remaining: K.round2(rem) },
       forecast: { date: forecastDate, avgPace7d: K.diffDays(upTo, g.startDate) < 1 ? null : K.round2(pace), onTrack: forecastDate !== null && forecastDate <= g.endDate },
-      planFact: activeMembers(S).map(function (m) { return planFactPeriod(ctx, g, m.id, upTo); }),
+      planFact: goalMembers(S, g).map(function (m) { return planFactPeriod(ctx, g, m.id, upTo); }),
       normWarning: { active: warnActions.length > 0, actions: warnActions },
       slice: { days: days },
       outcome: outcome
@@ -2676,6 +2903,8 @@ window.GT_CONFIG = {
   var WORK = ['owner', 'participant'];
   var ACCESS = {
     'app.bootstrap': { roles: ANY, consent: false }, 'presets.list': { roles: ANY, consent: false }, 'consent.accept': { roles: ANY, consent: false, write: true },
+    // естественная идемпотентность, журнала повторов нет (api.md §2 п. 7, контракт 10.1)
+    'healthConsent.accept': { roles: ANY, write: true, journal: false }, 'healthConsent.revoke': { roles: ANY, write: true, journal: false },
     'notify.reportWriteAccess': { roles: ANY, write: true },
     'invite.accept': { roles: ['none'], write: true, wrongRole: 'already_in_cabinet' },
     // только ACCESS_MODE=codes (в бете not_available, см. CODES_ONLY)
@@ -2705,7 +2934,7 @@ window.GT_CONFIG = {
     'admin.export.page', 'admin.import.page'];
   var PUBLIC = ['recovery.request']; // без initData
 
-  var api = { M: M, ACCESS: ACCESS, NOT_AVAILABLE: NOT_AVAILABLE, CODES_ONLY: CODES_ONLY, PUBLIC: PUBLIC, fail: fail,
+  var api = { M: M, ACCESS: ACCESS, healthGuard: healthGuard, armHealthGuard: armHealthGuard, NOT_AVAILABLE: NOT_AVAILABLE, CODES_ONLY: CODES_ONLY, PUBLIC: PUBLIC, fail: fail,
     core: { createGoalCore: createGoalCore, completeCore: completeCore, activeGoal: activeGoal, memberById: memberById, dayNorms: dayNorms,
       activeMembers: activeMembers, setFact: setFact, pubGoal: pubGoal, pubAction: pubAction, noteReached: noteReached },
     PRESET_IDS: PRESET_IDS };
@@ -2718,6 +2947,8 @@ window.GT_CONFIG = {
 //
 //   new       первый вход: согласие → кабинет без цели (мастер)
 //   outdated  как new, но политика сменится при первом согласии (consent_outdated)
+//   health-new   как new, но пресет «Вес» требует согласия на сведения о здоровье (health_consent_required → S-06)
+//   health-left  участник пары вышел из цели группы здоровья (нет согласия): цель только для чтения, без его плана
 //   noaccess  согласие дано, ID нет в белом списке: «закрытая бета»
 //   invited   нет доступа, но есть приглашение inv_MOCKINVITE01 в чужой кабинет
 //   active    кабинет, цель на 30 дней (9 дней истории, «сегодня» не внесено)
@@ -2739,7 +2970,7 @@ window.GT_CONFIG = {
   var Mth = dep('./methods.js', 'mockMethods');
   var PRESETS = dep('./presets.js', 'mockPresets').PRESETS;
 
-  var BASES = ['new', 'outdated', 'noaccess', 'invited', 'active', 'pair', 'reached', 'finished', 'ended', 'notstarted', 'readonly',
+  var BASES = ['new', 'outdated', 'health-new', 'health-left', 'noaccess', 'invited', 'active', 'pair', 'reached', 'finished', 'ended', 'notstarted', 'readonly',
     'codes-new', 'codes-transfer', 'codes-beta-noemail'];
   var FLAGS = ['offline', 'flaky', 'slow', 'expired', 'wrongenv', 'busy', 'ratelimit'];
   var SCENARIOS = BASES.concat(FLAGS);
@@ -2834,6 +3065,8 @@ window.GT_CONFIG = {
       if (base === 'codes-transfer') base = 'invited'; // чужой кабинет с владельцем: код RECOVERYCODE переносит доступ на этот аккаунт
       else { base = 'active'; S.access = { source: 'beta_whitelist', email: null }; } // codes-beta-noemail: бесплатный бета-доступ без email
     }
+    if (base === 'health-new') { S.presetGroups = { weight: 'body' }; base = 'new'; } // пресет «Вес» требует согласия на сведения о здоровье
+    if (base === 'health-left') { S.presetGroups = { sport: 'body' }; base = 'pair'; as = 'participant'; } // участник без согласия уже вышел из цели
     if (base === 'new' || base === 'outdated') { S.bumpOnAccept = base === 'outdated'; return; }
     consentUser(ctx);
     if (base === 'noaccess') { S.whitelisted = false; return; }
@@ -2888,6 +3121,7 @@ window.GT_CONFIG = {
     // сегодня внесено только первое действие первого участника: «—» у остальных
     var first = S.actions.find(function (a) { return a.goalId === goal.id && a.ownerMemberId === owner.id; });
     Mth.core.setFact(S, first.id, ctx.today, first.versions[0].startNorm);
+    if (sc.base === 'health-left') Mth.M['healthConsent.revoke'](Object.assign({}, ctx, { me: me, role: me.role }));
   }
 
   var api = { SCENARIOS: SCENARIOS, resolve: resolve, blank: blank, seed: seed };
@@ -3036,8 +3270,11 @@ window.GT_CONFIG = {
           return ok(requestId, JSON.parse(prev.data), true);
         }
       }
+      // 7а. согласие на сведения о здоровье: после прав и валидации params, до записи (срабатывает в validator.done())
+      Mth.armHealthGuard(function () { Mth.healthGuard(ctx, method, params); });
       // 8. выполнение
-      var data = Mth.M[method](ctx, params);
+      var data;
+      try { data = Mth.M[method](ctx, params); } finally { Mth.armHealthGuard(null); }
       if (journaled) {
         S.reqLog[logKey] = { hash: hash, method: method, data: JSON.stringify(data) };
         persist();
@@ -4326,6 +4563,7 @@ window.GT_CONFIG = {
     // ----- M-1 -----
     function step1() {
       onStep1 = true;
+      env.setBack(); // с S-41 BackButton ведёт назад на S-41, на первом запуске его нет
       box.textContent = '';
       box.appendChild(h('h2', { text: t('wizard.title') }));
       box.appendChild(h('p', { text: t('wizard.pickPreset') }));
@@ -4440,7 +4678,8 @@ window.GT_CONFIG = {
       var bottom = h('p', { class: 'error', hidden: true });
       var done = U.button(t('wizard.done'), function () { submit(done, bottom); });
       box.appendChild(bottom);
-      box.appendChild(h('div', { class: 'actions' }, done, U.button(t('common.back'), function () { step1(); }, { secondary: true })));
+      box.appendChild(h('div', { class: 'actions' }, done));
+      env.setBack(step1); // шаг назад — BackButton (вне Telegram «←» в шапке), своей кнопки «Назад» нет
       if (keepScroll) window.scrollTo(0, y);
     }
 
@@ -4469,6 +4708,7 @@ window.GT_CONFIG = {
     function step3(data, sent) {
       var goal = data.goal;
       onStep1 = false;
+      env.setBack(false); // цель уже создана: назад к выбору пресета нельзя
       box.textContent = '';
       var notify = h('div', { class: 'card' });
       function renderNotify() {
@@ -5379,6 +5619,27 @@ window.GT_CONFIG = {
   function errorBox(env) { return env.h('p', { class: 'error', hidden: true }); }
   function showErr(box, text) { box.textContent = text; box.hidden = false; }
 
+  // «Тема» (контракт 10): Авто / Светлая / Тёмная, только на устройстве, запросов к API нет
+  function themeSection(env) {
+    var h = env.h;
+    var current = env.theme.get();
+    var seg = h('div', { class: 'seg', role: 'group', 'aria-label': env.t('settings.theme') });
+    var PREFS = root.GT.theme.PREFS;
+    PREFS.forEach(function (pref) {
+      var btn = h('button', { type: 'button', class: pref === current ? 'on' : 'secondary', text: env.t('theme.' + pref), 'aria-pressed': String(pref === current),
+        onclick: function () {
+          env.theme.set(pref);
+          Array.prototype.forEach.call(seg.children, function (c, i) {
+            var on = PREFS[i] === pref;
+            c.className = on ? 'on' : 'secondary';
+            c.setAttribute('aria-pressed', String(on));
+          });
+        } });
+      seg.appendChild(btn);
+    });
+    return h('section', { class: 'card' }, h('h3', { text: env.t('settings.theme') }), seg);
+  }
+
   // ---------- S-50 Настройки ----------
   screens.settings = function (env) {
     var h = env.h;
@@ -5394,6 +5655,7 @@ window.GT_CONFIG = {
     box.appendChild(item(t('settings.messages'), 'messages'));
     box.appendChild(item(t('settings.members'), 'members'));
     if (env.isOwner()) box.appendChild(item(t('settings.cabinet'), 'cabinet'));
+    box.appendChild(themeSection(env));
     if (b.mode === 'whitelist') { // только в режиме беты
       box.appendChild(h('section', { class: 'card' },
         h('p', { class: 'hint', text: t('settings.betaVersion', { v: env.cfg.APP_VERSION || '0', env: b.env }) }),
@@ -5894,7 +6156,18 @@ window.GT_CONFIG = {
   function sinceOpen() { return typeof performance !== 'undefined' && performance.now ? performance.now() : 0; }
   GT.diag.mark('scripts', sinceOpen());
 
+  // Тема: data-theme на <html>, цвета шапки и панели Telegram; «Авто» следует за Telegram (themeChanged)
+  var theme = GT.theme.createTheme({
+    getStorage: function () { return window.localStorage; },
+    getTg: function () { return tg; },
+    isDark: function () { return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); },
+    root: document.documentElement
+  });
+  // Заставка с логотипом видна, пока идёт загрузка; с первым настоящим экраном (в том числе из кэша) её не остаётся
+  function hideSplash() { var s = document.getElementById('splash'); if (s) s.remove(); }
+
   var TABS = ['today', 'dashboard', 'history', 'settings'];
+  var SVG_NS = 'http://www.w3.org/2000/svg';
 
   // Хранилища в localStorage (чтение и запись в try/catch внутри createStore): черновики дней и кэш последнего «Сегодня»
   function getStorage() { return window.localStorage; }
@@ -5928,6 +6201,7 @@ window.GT_CONFIG = {
   var env = {
     h: h, t: t, S: S, U: U, F: GT.format, D: GT.dates, cfg: cfg, mode: mode, diag: GT.diag,
     get tg() { return tg; },
+    theme: theme,
     // opts.reason — причина запроса для «Диагностики»: start | action (по умолчанию) | tab (дашборд, история) | background
     call: function (method, params, opts) {
       var o = Object.assign({ reason: TAB_READS.test(method) ? 'tab' : 'action' }, opts);
@@ -5952,6 +6226,8 @@ window.GT_CONFIG = {
     },
     staleState: function () { return staleState; },
     hasMainButton: function () { return !!(tg && tg.MainButton); },
+    // Свой шаг «назад» внутри экрана (шаг мастера): fn — обработчик, false — BackButton скрыт, без аргумента — по умолчанию (подэкран → назад)
+    setBack: function (fn) { screenBack = fn === undefined || fn === null ? undefined : fn; syncBack(); },
     retryBoot: function () { staleState = 'loading'; if (todayCtrl) todayCtrl.setStale(true); flow.retry(); },
     boot: boot,
     // Свою запись в кабинете узнаём по me.memberId из app.bootstrap, а не по роли.
@@ -6019,14 +6295,17 @@ window.GT_CONFIG = {
   function syncTelegramButtons() {
     if (!tg || !todayCtrl) return;
     var u = todayCtrl.ui();
-    var show = u.show && GT.router.saveButtonAllowed(desc, nav, helpOpen); // «Сохранить» только на экране «Сегодня»
-    var sig = [show, u.loading, u.confirmClose].join();
+    var show = GT.chrome.mainButtonVisible(desc, nav, helpOpen, u.show); // «Сохранить» только на экране «Сегодня»
+    var scheme = theme.resolved();
+    var sig = [show, u.loading, u.confirmClose, scheme].join();
     if (sig === lastButtons) return;
     lastButtons = sig;
     try {
       var mb = tg.MainButton;
       if (mb) {
         if (show) {
+          var c = GT.theme.TG_COLORS[scheme];
+          mb.setParams({ text: t('today.save'), color: c.btn, text_color: c.ink }); // цвет акцента темы
           mb.setText(t('today.save'));
           mb.show();
           if (u.loading) mb.showProgress(false); else mb.hideProgress();
@@ -6034,6 +6313,33 @@ window.GT_CONFIG = {
       }
       if (u.confirmClose) tg.enableClosingConfirmation(); else tg.disableClosingConfirmation();
     } catch (e) { /* старый клиент Telegram без этих методов: остаётся кнопка на странице */ }
+  }
+
+  // ---------- «Назад»: BackButton Telegram, вне Telegram — кнопка «←» в шапке ----------
+  var screenBack;         // выбор экрана: undefined (по умолчанию) | false (скрыть) | fn (свой шаг назад); сбрасывается при смене экрана
+  var backEl = null;      // кнопка «←» в шапке (когда BackButton Telegram недоступен)
+  function goBack() {
+    if (!GT.chrome.backVisible(desc, nav, helpOpen, screenBack)) return;
+    if (helpOpen) { helpOpen = false; renderChrome(); showCurrent(); return; }
+    if (typeof screenBack === 'function') return screenBack();
+    env.back();
+  }
+  function syncBack() {
+    var show = GT.chrome.backVisible(desc, nav, helpOpen, screenBack);
+    if (backEl) backEl.hidden = !show;
+    if (!tg || !tg.BackButton) return;
+    try { if (show) tg.BackButton.show(); else tg.BackButton.hide(); } catch (e) { /* старый клиент Telegram: остаётся «←» в шапке */ }
+  }
+
+  // Экранная клавиатура: окно ниже самой большой высоты и в фокусе поле ввода → меню скрыто (body.kbd)
+  var baseHeight = 0;
+  function syncKeyboard() {
+    var el = document.activeElement;
+    var editing = !!el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
+    var vv = window.visualViewport;
+    var height = vv ? vv.height : window.innerHeight;
+    if (height > baseHeight) baseHeight = height;
+    document.body.classList.toggle('kbd', GT.chrome.keyboardOpen(baseHeight, height, editing));
   }
 
   // Кэш последнего «Сегодня» (ключ — пользователь): при открытии показывается сразу, пока идёт app.bootstrap.
@@ -6093,11 +6399,12 @@ window.GT_CONFIG = {
 
   function renderChrome() {
     var d = desc || { screen: 'loading' };
-    var inTabs = d.screen === 'today';
+    var menu = GT.chrome.menuVisible(d, nav, helpOpen);
     root.textContent = '';
-    var canBack = inTabs && nav.stack.length > 0;
+    // «←» в шапке только вне Telegram (или в клиенте без BackButton); показ — syncBack
+    backEl = tg && tg.BackButton ? null : h('button', { type: 'button', class: 'secondary back', 'aria-label': t('common.back'), text: '←', hidden: true, onclick: goBack });
     var header = h('header', null,
-      canBack ? h('button', { type: 'button', class: 'secondary', 'aria-label': t('common.back'), text: '←', onclick: env.back }) : null,
+      backEl,
       h('h1', { text: titleText() }),
       d.screen === 'loading' ? null :
         h('button', { type: 'button', class: 'secondary', 'aria-label': t('common.help'), text: 'i', onclick: function () { helpOpen = !helpOpen; renderChrome(); showCurrent(); } }));
@@ -6105,10 +6412,19 @@ window.GT_CONFIG = {
     if (d.readOnly) root.appendChild(h('div', { class: 'banner', text: t('common.readOnlyBanner') }));
     var main = h('main', { id: 'view' });
     root.appendChild(main);
-    if (inTabs && !helpOpen) {
-      var nav_ = h('nav', { class: 'tabs' });
+    root.classList.toggle('has-menu', menu);
+    if (menu) {
+      var nav_ = h('nav', { class: 'tabs', 'aria-label': t('tabs.label') });
       TABS.forEach(function (k) {
-        var b = h('button', { type: 'button', text: t('tabs.' + k), onclick: function () { env.tab(k); } });
+        var icon = document.createElementNS(SVG_NS, 'svg');
+        icon.setAttribute('viewBox', '0 0 24 24');
+        icon.setAttribute('aria-hidden', 'true');
+        GT.chrome.TAB_ICONS[k].forEach(function (p) {
+          var el = document.createElementNS(SVG_NS, p[0]);
+          Object.keys(p[1]).forEach(function (a) { el.setAttribute(a, p[1][a]); });
+          icon.appendChild(el);
+        });
+        var b = h('button', { type: 'button', onclick: function () { env.tab(k); } }, icon, h('span', { text: t('tabs.' + k) }));
         if (k === nav.tab) b.setAttribute('aria-current', 'page');
         nav_.appendChild(b);
       });
@@ -6123,6 +6439,7 @@ window.GT_CONFIG = {
 
   function showScreen(name, params) {
     runLeaveHooks();
+    screenBack = undefined; // свой шаг «назад» принадлежит прежнему экрану
     var token = ++viewToken;
     var fn = GT.screens[name];
     if (!fn) return setView(h('div', null, h('p', { text: t('fatal.generic.text') })));
@@ -6140,8 +6457,10 @@ window.GT_CONFIG = {
   }
 
   function showCurrent() {
+    if (desc && desc.screen !== 'loading') hideSplash();
     var r = showCurrentInner();
-    syncTelegramButtons(); // кнопка Telegram зависит от экрана: после любой смены экрана пересчитываем
+    syncTelegramButtons(); // кнопки Telegram зависят от экрана: после любой смены экрана пересчитываем
+    syncBack();
     return r;
   }
 
@@ -6261,15 +6580,23 @@ window.GT_CONFIG = {
     flow.run();
   }
 
-  onDescriptor({ screen: 'loading' });
   if (mode === 'real') {
     // telegram-web-app.js подключён в <head> обычным тегом (index.html), к моменту выполнения этого скрипта он уже загружен
     tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
     if (tg) {
       try { tg.ready(); tg.expand(); } catch (e) { /* не критично */ }
       try { tg.MainButton.onClick(function () { if (todayCtrl) todayCtrl.press(); }); } catch (e) { /* без кнопки Telegram «Сохранить» рисуется на странице */ }
+      try { tg.BackButton.onClick(goBack); } catch (e) { /* без BackButton «←» рисуется в шапке */ }
     }
   }
+  // Клавиатура: размер окна и фокус поля (focusin/focusout) → меню скрыто; поворот экрана сбрасывает базовую высоту
+  window.addEventListener('resize', syncKeyboard);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', syncKeyboard);
+  window.addEventListener('orientationchange', function () { baseHeight = 0; syncKeyboard(); });
+  document.addEventListener('focusin', syncKeyboard);
+  document.addEventListener('focusout', function () { setTimeout(syncKeyboard, 0); });
+  theme.init();
+  onDescriptor({ screen: 'loading' });
   startFlow();
 
   GT.env = env; // для отладки в консоли

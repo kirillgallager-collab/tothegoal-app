@@ -1,13 +1,46 @@
-/* Простой интерфейс без визуального дизайна (дизайн — после беты). */
+/* Токены тем и шрифт (дизайн v8, эталон — design-preview/index.html). Тему ставит js/theme.js: data-theme на <html>.
+   Светлая — по умолчанию, тёмная — :root[data-theme="dark"]. */
+
+/* Montserrat 200–700, два файла рядом с приложением (fonts/): кириллица 23,8 КБ + латиница 38,0 КБ; внешних запросов нет */
+@font-face{font-family:"Montserrat";font-style:normal;font-weight:200 700;font-display:swap;src:url(fonts/montserrat-cyrillic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Montserrat";font-style:normal;font-weight:200 700;font-display:swap;src:url(fonts/montserrat-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+  color-scheme: light;
+  --bg:#F7F3EC; --card:#FFFDF9; --pop-shadow:0 6px 18px rgba(15,42,32,.14);
+  --warn:#A8553A; --line-btn:#B9A982;
+  --text:#0F2A20; --muted:#566860;
+  --accent:#0B4A33;
+  --btn-bg:#0B4A33; --btn-ink:#F7F3EC;
+  --line:#CDBFA3; --track:rgba(205,191,163,.45); --bar:#0B4A33;
+  --soft:#F1EBDF; --skel-a:#EFE9DC; --skel-b:#F9F5EC; --tg-head:#F7F3EC;
+  --font:Montserrat,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#121614; --card:#1B201D; --pop-shadow:0 6px 18px rgba(0,0,0,.45);
+  --warn:#D9927A; --line-btn:rgba(236,230,220,.28);
+  --text:#ECE6DC; --muted:rgba(236,230,220,.6);
+  --accent:#E0D3B8;
+  --btn-bg:#E0D3B8; --btn-ink:#121614;
+  --line:rgba(236,230,220,.1); --track:#2A302C; --bar:#E0D3B8;
+  --soft:#232824; --skel-a:#1B201D; --skel-b:#272E2A; --tg-head:#121614;
+}
+
+/* Заставка: логотип No Reason, пока идёт загрузка; app.js убирает её с первым экраном */
+#splash{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+#splash svg{width:200px;max-width:60vw;height:auto;display:block;color:var(--accent)}
+
+/* Простой интерфейс; цвета и шрифт — токены из css/theme.css (экраны в дизайне v8 — шаг 5 плана). */
 * { box-sizing: border-box; }
 /* Страница не должна ездить вбок внутри Mini App; двойной тап не приближает экран (iOS) */
 html { overflow-x: hidden; max-width: 100%; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
 body {
   overflow-x: hidden; max-width: 100%; touch-action: manipulation;
   margin: 0;
-  font: 16px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: var(--tg-theme-bg-color, #ffffff);
-  color: var(--tg-theme-text-color, #111111);
+  font: 16px/1.4 var(--font);
+  background: var(--bg);
+  color: var(--text);
 }
 #app { min-height: 100vh; display: flex; flex-direction: column; }
 header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #8884; }
@@ -20,17 +53,25 @@ h2 { margin: 0 0 12px; font-size: 20px; }
 p { margin: 0 0 12px; }
 button {
   min-height: 44px; padding: 0 16px; font: inherit; border: 1px solid #8886; border-radius: 10px;
-  background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff);
+  background: var(--btn-bg); color: var(--btn-ink);
 }
 button.secondary { background: transparent; color: inherit; }
 button[disabled] { opacity: .45; }
 label.check { display: flex; gap: 10px; align-items: flex-start; margin: 16px 0; }
 label.check input { width: 24px; height: 24px; flex: none; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-nav.tabs { display: flex; border-top: 1px solid #8884; padding-bottom: env(safe-area-inset-bottom, 0); }
-/* 4 вкладки делят ширину поровну: без min-width:0 и больших отступов «Настройки» выезжало за 375 px */
-nav.tabs button { flex: 1 1 0; min-width: 0; padding: 0 2px; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 0; border-radius: 0; background: transparent; color: inherit; }
-nav.tabs button[aria-current="page"] { font-weight: 700; box-shadow: inset 0 3px 0 var(--tg-theme-button-color, #3390ec); }
+[hidden] { display: none !important; }
+/* Меню-пилюля (design-preview .nav/.tab): закреплена внизу, не прокручивается; скрыта при клавиатуре (body.kbd, app.js) */
+nav.tabs { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 5; display: flex; gap: 4px; height: 64px; padding: 6px;
+  border-radius: 99px; background: var(--card); border: 1px solid var(--line); }
+body.kbd nav.tabs { display: none; }
+#app.has-menu { padding-bottom: calc(64px + 36px + env(safe-area-inset-bottom, 0px)); } /* содержимое не прячется под меню */
+body.kbd #app.has-menu { padding-bottom: 0; }
+/* 4 пункта делят ширину поровну: min-width:0, чтобы «Настройки» не выезжало за 375 px */
+nav.tabs button { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 2px;
+  font: 400 11px/1 var(--font); border: 0; border-radius: 99px; background: transparent; color: var(--muted); }
+nav.tabs svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+nav.tabs button[aria-current="page"] { background: var(--btn-bg); color: var(--btn-ink); }
 footer.service { font-size: 12px; opacity: .6; padding: 6px 16px; text-align: center; }
 .spinner { width: 32px; height: 32px; border: 4px solid #8884; border-top-color: #3390ec; border-radius: 50%; animation: spin 1s linear infinite; margin: 48px auto 12px; }
 .loading-text { text-align: center; display: none; }
@@ -52,13 +93,13 @@ main { padding-bottom: 24px; }
 .hint { font-size: 13px; opacity: .7; margin: 4px 0 8px; }
 .label { display: block; font-size: 14px; margin-bottom: 4px; }
 .field { margin: 0 0 12px; }
-.field-error { color: #c0392b; font-size: 13px; margin: 4px 0 0; }
+.field-error { color: var(--warn); font-size: 13px; margin: 4px 0 0; }
 input[type=text], input[type=date], select, textarea {
   width: 100%; min-height: 44px; padding: 8px 10px; font: inherit; border: 1px solid #8886; border-radius: 10px;
   background: transparent; color: inherit;
 }
 textarea { min-height: 80px; }
-button.on { background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff); }
+button.on { background: var(--btn-bg); color: var(--btn-ink); }
 button.danger { background: #c0392b; color: #fff; }
 button.preset { display: flex; flex-direction: column; align-items: flex-start; width: 100%; margin: 0 0 8px; padding: 10px 14px; text-align: left; height: auto; }
 button.preset span { font-size: 13px; opacity: .8; }
@@ -75,17 +116,17 @@ button.preset span { font-size: 13px; opacity: .8; }
 .unit-label { opacity: .7; min-width: 28px; }
 .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #8883; }
 .badge.ok { background: #2e9e5b33; }
-.fact.highlight, .field.highlight { outline: 3px solid var(--tg-theme-button-color, #3390ec); }
+.fact.highlight, .field.highlight { outline: 3px solid var(--accent); }
 .undo-bar { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; gap: 8px;
   padding: 8px 12px; margin: 0 0 12px; border-radius: 10px; background: #3390ec33; }
 .save-status { font-size: 13px; opacity: .7; margin: 8px 0 0; }
-.save-status.error { color: #c0392b; opacity: 1; }
+.save-status.error { color: var(--warn); opacity: 1; }
 .entered.ok { color: #2e9e5b; font-weight: 600; }
-.overdue span { color: #c0392b; }
+.overdue span { color: var(--warn); }
 .toast { position: fixed; left: 16px; right: 16px; bottom: 72px; z-index: 20; padding: 10px 14px; border-radius: 10px; background: #222; color: #fff; text-align: center; }
 .toast.error { background: #c0392b; }
 .dialog-back { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 16px; background: #0006; }
-.dialog { width: 100%; max-width: 420px; padding: 16px; border-radius: 14px; background: var(--tg-theme-bg-color, #fff); }
+.dialog { width: 100%; max-width: 420px; padding: 16px; border-radius: 14px; background: var(--card); }
 .presets details summary { cursor: pointer; font-weight: 600; }
 .telegram-id { font-size: 18px; font-weight: 600; }
 .goal-line { margin: 8px 0 0; font-size: 15px; }
