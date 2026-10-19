@@ -1,0 +1,223 @@
+/* Токены тем и шрифт (дизайн v8, эталон — design-preview/index.html). Тему ставит js/theme.js: data-theme на <html>.
+   Светлая — по умолчанию, тёмная — :root[data-theme="dark"]. */
+
+/* Montserrat 200–700, два файла рядом с приложением (fonts/): кириллица 23,8 КБ + латиница 38,0 КБ; внешних запросов нет */
+@font-face{font-family:"Montserrat";font-style:normal;font-weight:200 700;font-display:swap;src:url(fonts/montserrat-cyrillic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Montserrat";font-style:normal;font-weight:200 700;font-display:swap;src:url(fonts/montserrat-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+  color-scheme: light;
+  --bg:#F7F3EC; --card:#FFFDF9; --pop-shadow:0 6px 18px rgba(15,42,32,.14);
+  --warn:#A8553A; --line-btn:#B9A982;
+  --text:#0F2A20; --muted:#566860;
+  --accent:#0B4A33;
+  --btn-bg:#0B4A33; --btn-ink:#F7F3EC;
+  --line:#CDBFA3; --track:rgba(205,191,163,.45); --bar:#0B4A33;
+  --soft:#F1EBDF; --skel-a:#EFE9DC; --skel-b:#F9F5EC; --tg-head:#F7F3EC;
+  --font:Montserrat,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#121614; --card:#1B201D; --pop-shadow:0 6px 18px rgba(0,0,0,.45);
+  --warn:#D9927A; --line-btn:rgba(236,230,220,.28);
+  --text:#ECE6DC; --muted:rgba(236,230,220,.6);
+  --accent:#E0D3B8;
+  --btn-bg:#E0D3B8; --btn-ink:#121614;
+  --line:rgba(236,230,220,.1); --track:#2A302C; --bar:#E0D3B8;
+  --soft:#232824; --skel-a:#1B201D; --skel-b:#272E2A; --tg-head:#121614;
+}
+
+/* Заставка: логотип No Reason, пока идёт загрузка; app.js убирает её с первым экраном */
+#splash{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+#splash svg{width:200px;max-width:60vw;height:auto;display:block;color:var(--accent)}
+
+/* Простой интерфейс; цвета и шрифт — токены из css/theme.css (экраны в дизайне v8 — шаг 5 плана). */
+* { box-sizing: border-box; }
+/* Страница не должна ездить вбок внутри Mini App; двойной тап не приближает экран (iOS) */
+html { overflow-x: hidden; max-width: 100%; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+body {
+  overflow-x: hidden; max-width: 100%; touch-action: manipulation;
+  margin: 0;
+  font: 16px/1.4 var(--font);
+  background: var(--bg);
+  color: var(--text);
+}
+#app { min-height: 100vh; display: flex; flex-direction: column; }
+header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+header h1 { font-size: 18px; margin: 0; }
+main { flex: 1; padding: 16px; }
+.banner { background: var(--soft); padding: 8px 16px; text-align: center; font-weight: 600; }
+.notice { background: var(--soft); padding: 8px 12px; border-radius: 8px; margin: 0 0 12px; }
+.error { background: var(--soft); color: var(--warn); padding: 8px 12px; border-radius: 8px; margin: 12px 0; }
+h2 { margin: 0 0 16px; font: 700 20px/1.3 var(--font); }
+p { margin: 0 0 12px; }
+/* Кнопки v8 (design-preview .btn): главная залита, вторичная — контур, деструктивная — контур --warn */
+button {
+  min-height: 48px; padding: 0 16px; font: 400 15px/1.2 var(--font); letter-spacing: .04em; border: 1px solid var(--btn-bg); border-radius: 14px;
+  background: var(--btn-bg); color: var(--btn-ink);
+}
+button.secondary { background: transparent; color: var(--text); border-color: var(--line-btn); }
+button[disabled] { opacity: .35; }
+/* Чекбокс: настоящий input, вид — .chk макета; label целиком — зона нажатия не меньше 44 px */
+label.check { display: flex; gap: 12px; align-items: flex-start; min-height: 44px; padding: 10px 0; margin: 0; cursor: pointer; }
+label.check input { -webkit-appearance: none; appearance: none; flex: none; width: 24px; height: 24px; margin: 0; border-radius: 7px; border: 1.5px solid var(--muted); background: transparent; display: grid; place-content: center; }
+label.check input:checked { background: var(--btn-bg); border-color: var(--btn-bg); }
+label.check input:checked::after { content: ""; width: 10px; height: 5px; border-left: 2px solid var(--btn-ink); border-bottom: 2px solid var(--btn-ink); transform: rotate(-45deg) translate(1px, -1px); }
+label.check input[disabled] { opacity: .5; }
+label.check span, label.check strong { min-width: 0; font-size: 14px; line-height: 1.45; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+[hidden] { display: none !important; }
+/* Меню-пилюля (design-preview .nav/.tab): закреплена внизу, не прокручивается; скрыта при клавиатуре (body.kbd, app.js) */
+nav.tabs { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 5; display: flex; gap: 4px; height: 64px; padding: 6px;
+  border-radius: 99px; background: var(--card); border: 1px solid var(--line); }
+body.kbd nav.tabs { display: none; }
+#app.has-menu { padding-bottom: calc(64px + 36px + env(safe-area-inset-bottom, 0px)); } /* содержимое не прячется под меню */
+body.kbd #app.has-menu { padding-bottom: 0; }
+/* 4 пункта делят ширину поровну: min-width:0, чтобы «Настройки» не выезжало за 375 px */
+nav.tabs button { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 2px;
+  font: 400 11px/1 var(--font); border: 0; border-radius: 99px; background: transparent; color: var(--muted); }
+nav.tabs svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+nav.tabs button[aria-current="page"] { background: var(--btn-bg); color: var(--btn-ink); }
+footer.service { font-size: 12px; opacity: .6; padding: 6px 16px; text-align: center; }
+.spinner { width: 32px; height: 32px; border: 4px solid var(--track); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 48px auto 12px; }
+.loading-text { text-align: center; display: none; }
+body.slow .loading-text { display: block; }
+.center { text-align: center; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- W3: экраны ---- */
+header { gap: 8px; }
+header h1 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+main { padding-bottom: 24px; }
+h3 { margin: 0 0 8px; font-size: 16px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+.row.stepper { flex-wrap: nowrap; }
+.row.stepper button { min-width: 52px; min-height: 52px; font-size: 22px; }
+.row.stepper input { flex: 1; min-width: 0; text-align: center; font-size: 20px; }
+.hint { font-size: 13px; color: var(--muted); margin: 4px 0 8px; }
+.label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.field { margin: 0 0 12px; }
+.field-error { color: var(--warn); font-size: 13px; margin: 4px 0 0; }
+/* Общие поля. iOS не даёт date/time ширину 100% и центрирует текст: min-width:0, appearance:none, выравнивание влево (во всех формах) */
+input[type=text], input[type=date], input[type=time], select, textarea {
+  width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; min-height: 48px; padding: 12px 16px; font: inherit; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--soft); color: var(--text); -webkit-appearance: none; appearance: none; text-align: left;
+}
+input[type=date]::-webkit-date-and-time-value, input[type=time]::-webkit-date-and-time-value { text-align: left; }
+input[type=date]::-webkit-datetime-edit, input[type=time]::-webkit-datetime-edit { text-align: left; padding: 0; }
+textarea { min-height: 80px; }
+button.on { background: var(--btn-bg); color: var(--btn-ink); }
+button.danger { background: transparent; color: var(--warn); border-color: var(--warn); }
+.seg { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 8px; }
+.seg button { flex: 1; }
+.action-row { border-top: 1px solid var(--line); padding: 8px 0; }
+.action-row:first-of-type { border-top: 0; }
+.action-row .num { width: 90px; flex: none; text-align: center; }
+.action-row .unit { width: 80px; flex: none; }
+.action { border-top: 1px solid var(--line); padding: 10px 0; }
+.action:first-of-type { border-top: 0; }
+.action.done strong { opacity: .75; }
+.action button.value { flex: 1; min-height: 52px; font-size: 22px; background: transparent; color: inherit; }
+.action button.value.empty { opacity: .6; }
+.unit-label { opacity: .7; min-width: 28px; }
+/* «Повторить эту цель»: мягкий фон акцента под полем цели, без рамки (как у .fact.highlight, но не гаснет) */
+.field.highlight { position: relative; }
+.field.highlight::before { content: ""; position: absolute; inset: -6px -8px; border-radius: 14px; background: var(--accent); opacity: .14; pointer-events: none; }
+/* startapp=fact: мягкая подсветка фоном акцента, гаснет за ≈2 с, без рамки */
+.fact.highlight { position: relative; }
+.fact.highlight::before { content: ""; position: absolute; inset: 0; background: var(--accent); opacity: 0; pointer-events: none; animation: factflash 2s ease-out; }
+@keyframes factflash { from { opacity: .14; } to { opacity: 0; } }
+.undo-bar { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 8px 12px; margin: 0 0 12px; border-radius: 10px; background: var(--soft); }
+.save-status { font-size: 13px; opacity: .7; margin: 8px 0 0; }
+.save-status.error { color: var(--warn); opacity: 1; }
+.entered.ok { color: var(--accent); font-weight: 600; }
+.overdue span { color: var(--warn); }
+.toast { position: fixed; left: 16px; right: 16px; bottom: 72px; z-index: 20; padding: 10px 14px; border-radius: 10px; background: var(--text); color: var(--bg); text-align: center; }
+.toast.error { background: var(--warn); }
+.dialog-back { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 16px; background: #0006; }
+.dialog { width: 100%; max-width: 420px; padding: 16px; border-radius: 14px; background: var(--card); }
+.presets details summary { cursor: pointer; font-weight: 600; }
+.presets details + details { border-top: 1px solid var(--line); }
+.presets details[open] { padding-bottom: 12px; }
+.telegram-id { font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+.goal-line { margin: 8px 0 0; font-size: 15px; }
+button.sm { min-height: 36px; padding: 0 10px; font-size: 14px; }
+.action { padding: 6px 0; }
+.action .hint { margin: 2px 0 6px; }
+.row.stepper button { min-width: 48px; min-height: 48px; }
+.action button.value { min-height: 48px; }
+
+/* ---- S-10 / S-11 в дизайне v8: один контейнер, блоки разделены линией; задача — «флажок | название | кнопка» ---- */
+.panel .blk { padding: 16px 0; }
+.panel .blk + .blk { border-top: 1px solid var(--line); }
+.panel .blk:first-child { padding-top: 0; }
+h3.sec { margin: 0 0 8px; font: 700 13px/1.3 var(--font); letter-spacing: .08em; text-transform: uppercase; }
+.sec-form { margin: 32px 0 0; }
+.panel .action { border-top-color: var(--line); }
+.row.stepper button, button.sm, .task > button { border-color: var(--line-btn); }
+.task { display: flex; flex-wrap: nowrap; gap: 12px; align-items: flex-start; padding: 14px 0; }
+.task + .task { border-top: 1px solid var(--line); }
+label.task, .task .tcell { display: flex; flex: 1; min-width: 0; gap: 16px; align-items: flex-start; margin: 0; }
+.task > div, .task .tcell > div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.task .t, .task .sub { display: block; }
+.task .sub { margin-top: 2px; font-size: 13px; color: var(--muted); }
+.task.done .t { text-decoration: line-through; color: var(--muted); }
+.task.late .sub { color: var(--warn); }
+.task input[type=checkbox] { -webkit-appearance: none; appearance: none; flex: none; width: 24px; height: 24px; margin: 1px 0 0; border-radius: 99px; border: 1.5px solid var(--muted); background: transparent; }
+.task input[type=checkbox]:checked { background: var(--muted); }
+.task > button { flex: none; flex-shrink: 0; white-space: nowrap; min-height: 36px; padding: 0 12px; font-size: 14px; }
+
+/* ---- W4 ---- */
+.big { font-size: 20px; font-weight: 600; margin: 0 0 6px; }
+.stack { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+
+/* ---- S-20 / S-30 / S-31 в дизайне v8 (design-preview .top/.hero/.bar/.split/.row/.hrow): один контейнер .panel, блоки через линию ---- */
+.num { font-weight: 200; color: var(--accent); font-variant-numeric: lining-nums; }
+.hero { font-size: 44px; line-height: 1.1; letter-spacing: -.01em; margin-top: 12px; }
+.hero-of { margin-top: 2px; font-size: 14px; color: var(--muted); }
+.bar { height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; margin: 16px 0 10px; }
+.bar > i { display: block; height: 100%; border-radius: 2px; background: var(--bar); }
+.split { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--muted); }
+.muted { color: var(--muted); }
+.small { font-size: 13px; line-height: 1.5; }
+.sub { display: block; font-size: 13px; line-height: 1.4; color: var(--muted); margin-top: 2px; }
+.seg button[aria-pressed="true"] { background: var(--btn-bg); color: var(--btn-ink); }
+.seg button { background: transparent; color: var(--text); border-color: var(--line-btn); }
+/* строки-кнопки (дни среза): .rows .row — чтобы не задеть .row форм и степпера */
+.rows .row { display: flex; flex-wrap: nowrap; align-items: center; gap: 12px; width: 100%; min-height: 0; padding: 14px 0; border: 0; border-radius: 0; background: none; color: var(--text); font: inherit; text-align: left; }
+.rows .row + .row { border-top: 1px solid var(--line); }
+.row-main { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.rows .row .v { flex: none; color: var(--muted); text-align: right; }
+.hrow { display: block; width: 100%; min-height: 0; padding: 16px 0; border: 0; border-radius: 0; background: none; color: var(--text); font: inherit; text-align: left; }
+.hrow + .hrow { border-top: 1px solid var(--line); }
+.hist-top { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.hist-top .t { min-width: 0; overflow-wrap: anywhere; }
+.res { font-size: 13px; white-space: nowrap; }
+.hist-num { margin-top: 8px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.hist-num .num { font-size: 28px; line-height: 1; }
+.quote { display: block; margin-top: 10px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.refl + .refl { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+
+/* ---- W5 ---- */
+.hint.block { display: block; }
+input.code-input { text-transform: uppercase; letter-spacing: .12em; font-size: 20px; text-align: center; }
+
+/* ---- iPhone: нажатия и поля ввода ---- */
+/* Без задержки и без зума от двойного нажатия на всех кнопках и полях (частые «−/+» не приближают экран) */
+button, a, input, select, textarea, label, summary, [role="button"] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+/* Шрифт полей не меньше 16px: иначе iOS увеличивает страницу при фокусе (более крупные размеры ниже переопределяют) */
+input, select, textarea { font-size: 16px; max-width: 100%; }
+textarea.mono { width: 100%; min-height: 160px; font-family: ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* Плашка ошибки сохранения: значения остаются на экране, внизу кнопка «Повторить» */
+.err-bar { position: sticky; top: 0; z-index: 6; display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
+  padding: 10px 12px; margin: 0 0 12px; border-radius: 10px; background: var(--soft); color: var(--warn); font-weight: 600; }
+
+/* S-06: поверх любого экрана и меню; вёрстка и токены — design-preview #v-consent */
+#health-overlay { position: fixed; inset: 0; z-index: 20; overflow-y: auto; padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px)); background: var(--bg); color: var(--text); }
+#health-overlay .small { font-size: 13px; line-height: 1.5; }
+#health-overlay h2 { font: 700 13px/1.3 var(--font); letter-spacing: .08em; text-transform: uppercase; margin: 16px 0 12px; }
+#health-overlay .stack { margin-top: 20px; }
+#health-overlay button { min-height: 48px; border-radius: 14px; border: 0; }
+#health-overlay button.secondary { border: 1px solid var(--line-btn); color: var(--text); }

@@ -65,6 +65,16 @@ window.GT_CONFIG = {
       outdatedReloaded: 'Текст политики обновился, пожалуйста, прочитайте и подтвердите ещё раз.'
     },
 
+    // S-06. ЧЕРНОВИК текста: утвердит юрист (docs/STATUS.md п. 17); фраза про участников кабинета обязательна (api.md healthConsent.accept)
+    healthConsent: {
+      title: 'Сведения о здоровье',
+      text: 'В этой цели вы вносите сведения о здоровье (вес, привычки). Сведения в совместной цели видят участники вашего кабинета. Они никому не передаются и не анализируются.',
+      checkbox: 'Даю согласие на обработку сведений о здоровье',
+      submit: 'Продолжить',
+      decline: 'Отказаться',
+      outdated: 'Условия обновились: прочитайте текст и подтвердите согласие ещё раз.'
+    },
+
     noAccess: {
       title: 'Закрытая бета',
       text: 'Доступ по приглашению разработчика.',
@@ -93,6 +103,7 @@ window.GT_CONFIG = {
       remove: 'Убрать', addAction: '+ Добавить действие', advanced: 'Дополнительно', ceiling: 'Потолок нормы (во сколько раз максимум)',
       ceilingHint: 'Например 1,5: норма не вырастет больше чем в полтора раза. Пусто — без потолка.', growsOnLag: 'Норма растёт при отставании',
       tasks: 'Разовые задачи', done: 'Готово',
+      secGoal: 'Цель', secPeriod: 'Период', secInput: 'Ввод', secActions: 'Действия',
       created: 'Цель создана: {title}', notifyTitle: 'Уведомления от бота', notifyText: 'Бот напомнит внести день и пришлёт итог. Для этого нужно разрешение.',
       notifyAllow: 'Разрешить', notifySkip: 'Пропустить', inviteLater: 'Пригласить второго участника можно позже: Настройки → Участники.',
       toToday: 'К сегодняшнему дню',
@@ -107,7 +118,9 @@ window.GT_CONFIG = {
     today: {
       todayLabel: 'Сегодня, {date}', prevDay: 'Предыдущий день', nextDay: 'Следующий день',
       goalLine: '{cur} из {target} {unit} · осталось {rem} · {days} {daysWord}', day1: 'день', day2: 'дня', day5: 'дней',
-      streak: 'Лучшая серия: {n}', streakShort: 'серия {n}', factTitle: 'Факт дня', noActions: 'Ежедневных действий нет. Добавьте их в настройках.',
+      streak: 'Лучшая серия: {n}', streakShort: 'серия {n}', leftText: 'Дайте согласие, чтобы участвовать', leftJoin: 'Дать согласие',
+      returnedText: 'Вы снова в цели. Добавьте свои ежедневные действия.', returnedAdd: 'Добавить действия',
+      factTitle: 'Факт дня', noActions: 'Ежедневных действий нет. Добавьте их в настройках.',
       norm: 'Норма: {n} {unit}', normGrew: 'норма выросла: было {was}', done: 'выполнено', notDone: 'не выполнено',
       normButton: 'Норма выполнена', normDone: '✓ Норма выполнена', normUndo: 'Отменить «Норма выполнена»',
       enterValue: 'Ввести число: {title}', less: 'Меньше: {title}', more: 'Больше: {title}',
@@ -154,14 +167,14 @@ window.GT_CONFIG = {
     summary: { title: 'Итог цели', saved: 'Рефлексия сохранена ✓', newGoal: 'Новая цель', repeat: 'Повторить эту цель' },
     review: {
       dashboard: 'Дашборд', history: 'История целей', member: 'Участник',
-      progressLine: '{cur} из {target} {unit}', progressPct: 'Выполнено {p} %, осталось {rem}', period: 'Период: {period}',
+      ofTarget: 'из {target} {unit}, {p} %', remaining: 'Осталось {rem} {unit}',
       forecast: 'Прогноз', forecastNone: 'Пока мало данных для прогноза.', forecastOn: 'При текущем темпе выйдем на цель {date}.',
       forecastLate: 'При текущем темпе выйдем на цель {date}, срок — {end}.', pace: 'Средний темп за 7 дней: {n} {unit} в день',
       result: 'Итог', final: 'Достигнуто: {v} {unit}', success: 'Успех', fail: 'Не успех', running: 'идёт',
       planFact: 'План / факт сегодня', planFactRow: '{name}: {done} из {total} · {p} %', normWarning: 'Норма выросла больше чем вдвое против стартовой: цель требует заметно больше обычного. Можно поднять срок или цель в настройках.',
       slice: 'Срез по дням', daysN: '{n} дн.', dayDelta: '{d} {unit}', missing: 'не внесено',
       todayOpen: 'сегодня, {date}', openNotEntered: 'ещё не внесён', openEntered: '{p} % · день идёт',
-      historyEmpty: 'Целей пока нет.', histLine: 'Цель {target} {unit} · достигнуто {final} · {p} %', more: 'Показать ещё',
+      historyEmpty: 'Целей пока нет.', more: 'Показать ещё',
       target: 'цель {v} {unit}', planFactPct: 'План/факт по действиям: {p} %', bestStreak: 'Лучшая серия: {n}',
       stillRunning: 'Цель ещё идёт.', firstReached: 'Впервые цель достигнута {date}: {v} {unit} за {days} дн.',
       reflection: 'Рефлексия', noReflection: 'Пока ничего не заполнено.', editReflection: 'Заполнить / изменить рефлексию', toDashboard: 'Дашборд цели'
@@ -198,6 +211,13 @@ window.GT_CONFIG = {
       title: 'Настройки', goal: 'Цель', actions: 'Действия', messages: 'Сообщения Telegram', members: 'Участники', cabinet: 'Кабинет',
       theme: 'Тема', save: 'Сохранить', saved: 'Сохранено', conflict: 'Данные изменились на другом устройстве. Откройте экран заново.',
       betaVersion: 'Версия беты: {v} · окружение {env}', report: 'Сообщить о проблеме', copyReport: 'Скопировать отчёт'
+    },
+    // Отзыв согласия на сведения о здоровье. ЧЕРНОВИК текстов: утвердит юрист (docs/STATUS.md п. 17)
+    healthRevoke: {
+      title: 'Согласие на сведения о здоровье', button: 'Отозвать согласие',
+      confirmOwner: 'Цели групп здоровья (например, вес и привычки) будут удалены целиком, вместе с данными всех участников кабинета. Это нельзя отменить.',
+      confirmParticipant: 'Ваши данные в таких целях будут удалены, и вы перестанете в них участвовать. Цели останутся у других участников. Вернуться можно, дав согласие снова, но удалённые данные не восстановятся.',
+      confirmOk: 'Отозвать'
     },
     theme: { auto: 'Авто', light: 'Светлая', dark: 'Тёмная' },
     diag: {
@@ -725,7 +745,7 @@ window.GT_CONFIG = {
 // Ключ записи: gt:data:v2: + область (окружение, кабинет, участник) + вид + id цели + уточнение (например, 'completed'). При смене
 // кабинета или участника область другая, чужие записи не показываются и удаляются (purge). Формат записи изменился → поднять
 // версию префикса (VERSION), новая сборка не читает старые записи.
-// Свежесть: запись показывается всегда, а свежие данные запрашивает экран. Один запрос на вид+цель+уточнение: пока он в пути,
+// Свежесть: запись показывается всегда; запись моложе FRESH_MS (60 с) и без записи в цель «в пути» повторно не запрашивается (экран и фон), старше — свежие данные запрашивает экран. Один запрос на вид+цель+уточнение: пока он в пути,
 // второй вызов ждёт тот же ответ. Запись (факт, смена цели) обновляет «поколение» затронутых видов: ответ, начатый до записи,
 // в кэш не попадает, и второй вызов после записи не присоединяется к старому запросу.
 (function (root) {
@@ -734,6 +754,8 @@ window.GT_CONFIG = {
   var VERSION = 'v2';
   var PREFIX = 'gt:data:' + VERSION + ':';
   var SEP = '|';
+  // Порог свежести (контракт 10, api.md §4): запись моложе — запрос чтения не отправляется
+  var FRESH_MS = 60000;
 
   // Методы чтения: ответ записи не нужен, кэш они не сбрасывают
   var READ_ONLY = /\.(get|list|preview)$/;
@@ -747,6 +769,7 @@ window.GT_CONFIG = {
     var mem = {};        // key → запись { at, data } или null (удалена)
     var gens = {};       // 'вид|цель' → счётчик «поколения»
     var flights = {};    // key + поколение → Promise ответа
+    var writing = 0;     // записей в цель «в пути» (beforeWrite был, afterWrite ещё нет)
 
     function st() { try { return o.getStorage ? o.getStorage() : null; } catch (e) { return null; } }
     function scope() { var s; try { s = o.scope(); } catch (e) { s = null; } return s ? String(s).split(SEP).join('_') : null; }
@@ -893,6 +916,7 @@ window.GT_CONFIG = {
     // факт дня дополнительно сразу убирает дашборд (его нельзя показывать без только что сохранённого).
     function beforeWrite(method, params) {
       if (READ_ONLY.test(method) || method === 'presets.list') return;
+      writing++;
       if (FACT_WRITES[method]) { invalidate('dashboard'); invalidate('history.list', undefined, 'all'); return; }
       bump('dashboard'); bump('history.list'); bump('goal.get');
       if (params && params.goalId) bump('history.get', params.goalId);
@@ -902,6 +926,7 @@ window.GT_CONFIG = {
     // кроме goal.update, где настройки цели обновляются из ответа.
     function afterWrite(method, params, res) {
       if (READ_ONLY.test(method) || method === 'presets.list') return;
+      if (writing > 0) writing--;
       var goalId = params && params.goalId;
       if (FACT_WRITES[method]) { invalidate('dashboard'); invalidate('history.list', undefined, 'all'); return; }
       if (method === 'goal.update' && res && res.ok && res.data && res.data.goal) {
@@ -915,14 +940,14 @@ window.GT_CONFIG = {
         invalidate('history.list');
         return;
       }
-      if (method === 'cabinet.delete') { clear(); return; }
+      if (method === 'cabinet.delete' || method === 'healthConsent.revoke') { clear(); return; }
       // goal.create, goal.complete, goal.raiseBar, action.*, прочее: меняющееся удаляем; завершённые карточки (history.get) не трогаем
       invalidate('dashboard'); invalidate('history.list'); invalidate('goal.get');
       if (goalId && (method === 'goal.raiseBar' || method === 'goal.dismissReached')) invalidate('history.get', goalId);
     }
 
     return {
-      get: get, set: set, invalidate: invalidate, purge: purge, clear: clear, load: load, inFlight: inFlight,
+      get: get, set: set, invalidate: invalidate, purge: purge, clear: clear, load: load, inFlight: inFlight, isWriting: function () { return writing > 0; },
       beforeWrite: beforeWrite, afterWrite: afterWrite, keys: allKeys, PREFIX: PREFIX
     };
   }
@@ -965,15 +990,23 @@ window.GT_CONFIG = {
     // → { cached: {data, at}|null, fresh: Promise|null, shown() }. cached показывают сразу и вызывают shown() (замер для «Диагностики»);
     // fresh — запрос за свежим (null, если данные не меняются и они уже есть).
     var refreshedOnce = {};
+    // Запись свежая: моложе порога (возраст не отрицательный: часы могли уйти назад) и ни одна запись в цель не в пути
+    function isFresh(hit) {
+      var age = hit ? now() - hit.at : -1;
+      return age >= 0 && age < FRESH_MS && !cache.isWriting();
+    }
     function read(s) {
       var t0 = clock();
       var hit = cache.get(s.kind, s.goalId, s.extra);
       var info = hit ? { ageMs: now() - hit.at, shownMs: null } : null;
       // неизменяемое из кэша обновляется один раз за сеанс (рефлексию мог поправить второй участник)
       var mark = s.kind + SEP + s.goalId + SEP + s.extra;
-      var needFresh = !(hit && s.immutable && refreshedOnce[mark]);
-      if (s.immutable) refreshedOnce[mark] = true;
-      var fresh = needFresh ? fetchRead(s, 'tab', info) : null;
+      var sessionDone = !!(hit && s.immutable && refreshedOnce[mark]);
+      var young = !sessionDone && isFresh(hit);
+      var needFresh = !(sessionDone || young);
+      if (s.immutable && needFresh) refreshedOnce[mark] = true;
+      // свежая запись: запроса нет, экран получает те же данные готовым ответом (большинство экранов ждут fresh без проверки на null)
+      var fresh = needFresh ? fetchRead(s, 'tab', info) : (young ? Promise.resolve({ ok: true, data: hit.data }) : null);
       return {
         cached: hit, fresh: fresh,
         shown: function () {
@@ -984,8 +1017,12 @@ window.GT_CONFIG = {
       };
     }
 
-    // То же в фоне: результат только в кэш, ошибка молчит
-    function prefetch(s) { return fetchRead(s, 'background', null).then(function (res) { return res; }, function () { return { ok: false }; }); }
+    // То же в фоне: результат только в кэш, ошибка молчит; свежая запись (моложе FRESH_MS) запроса не вызывает
+    function prefetch(s) {
+      var hit = cache.get(s.kind, s.goalId, s.extra);
+      if (isFresh(hit)) return Promise.resolve({ ok: true, data: hit.data });
+      return fetchRead(s, 'background', null).then(function (res) { return res; }, function () { return { ok: false }; });
+    }
 
     // Фон: один раз за сеанс после показа первого экрана, по очереди; действия пользователя не ждут. Открыл вкладку, пока её запрос идёт, — ждёт тот же.
     var started = false;
@@ -1018,7 +1055,7 @@ window.GT_CONFIG = {
     return { spec: spec, read: read, prefetch: prefetch, startBackground: startBackground, fetchRead: fetchRead };
   }
 
-  var api = { createDataCache: createDataCache, createTabData: createTabData, PREFIX: PREFIX, VERSION: VERSION };
+  var api = { createDataCache: createDataCache, createTabData: createTabData, PREFIX: PREFIX, VERSION: VERSION, FRESH_MS: FRESH_MS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.GT = root.GT || {}; root.GT.dataCache = api; }
 })(globalThis);
@@ -1129,8 +1166,23 @@ window.GT_CONFIG = {
     return typeof actual === 'string' && actual === expected;
   }
 
+  // Участие в цели строго по me {left, returnedOn, healthConsentGiven} (контракт 10.2: today.get.me, app.bootstrap.activeGoal.me,
+  // goal.create.todayPlan.me); косвенные признаки (нет согласия, пустые actions) запрещены.
+  // 'left' — me.left; цель только для чтения. Вернувшийся (me.returnedOn) отдельного статуса не имеет: см. returnedToday.
+  function partOf(me) {
+    if (!me) return null;
+    return me.left ? 'left' : null;
+  }
+  function participation(boot) { return partOf(boot && boot.activeGoal && boot.activeGoal.me); }
+
+  // Баннер «Вы снова в цели…» только в день возврата: todayDate — серверное «сегодня» кабинета (app.bootstrap / goal.create),
+  // shownDate — показываемый день (today.get.date); часы устройства не участвуют.
+  function returnedToday(me, todayDate, shownDate) {
+    return !!me && me.left === false && !!todayDate && me.returnedOn === todayDate && shownDate === todayDate;
+  }
+
   // Какой экран показать после успешного app.bootstrap (env уже проверен).
-  // Возвращает { screen, readOnly, factMode, inviteCode, activateCode }.
+  // Возвращает { screen, readOnly, factMode, inviteCode, activateCode, part }; part — participation() для экрана «Сегодня».
   function decideScreen(boot, start) {
     var st = start || { type: 'none' };
     var out = { screen: 'today', readOnly: false, factMode: false, inviteCode: null, activateCode: null };
@@ -1169,7 +1221,8 @@ window.GT_CONFIG = {
 
     out.screen = 'today';
     if (!boot.activeGoal) { out.noGoal = true; return out; } // S-41: вкладки «Сегодня» и «Дашборд» показывают один экран
-    out.factMode = st.type === 'fact' && !!boot.activeGoal && !out.readOnly;
+    out.part = participation(boot);
+    out.factMode = st.type === 'fact' && !!boot.activeGoal && !out.readOnly && out.part !== 'left';
     // Сегодня вне периода цели: today = null, today.get не вызываем (api.md app.bootstrap)
     var g = boot.activeGoal;
     if (g && !boot.today && boot.todayDate) {
@@ -1188,6 +1241,7 @@ window.GT_CONFIG = {
     var g = data.goal;
     var b = Object.assign({}, boot, { today: data.todayPlan, todayDate: data.todayDate,
       activeGoal: { id: g.id, title: g.title, unit: g.unit, direction: g.direction, startDate: g.startDate, endDate: g.endDate, inputMode: g.inputMode, status: g.status } });
+    if (data.todayPlan) b.activeGoal.me = data.todayPlan.me; // при старте позже todayPlan = null и me нет: цель только что создана, части нет
     b.prompts = Object.assign({}, boot.prompts, { goalReached: false, reflectionGoalId: null, needsNewGoal: false });
     if (sent && sent.timezone && boot.cabinet) b.cabinet = Object.assign({}, boot.cabinet, { timezone: sent.timezone }); // пояс из запроса: cabinet в ответе не приходит
     return b;
@@ -1216,10 +1270,10 @@ window.GT_CONFIG = {
 
   // Кнопка Telegram «Сохранить» нужна только на экране «Сегодня» (вкладка «Сегодня», без подэкранов и справки).
   function saveButtonAllowed(desc, nav, helpOpen) {
-    return !!desc && desc.screen === 'today' && !desc.readOnly && !desc.period && !desc.noGoal && !helpOpen && nav.tab === 'today' && nav.stack.length === 0;
+    return !!desc && desc.screen === 'today' && !desc.readOnly && desc.part !== 'left' && !desc.period && !desc.noGoal && !helpOpen && nav.tab === 'today' && nav.stack.length === 0;
   }
 
-  var api = { parseStartParam: parseStartParam, checkEnv: checkEnv, decideScreen: decideScreen, screenForError: screenForError, saveButtonAllowed: saveButtonAllowed,
+  var api = { participation: participation, partOf: partOf, returnedToday: returnedToday, parseStartParam: parseStartParam, checkEnv: checkEnv, decideScreen: decideScreen, screenForError: screenForError, saveButtonAllowed: saveButtonAllowed,
     bootAfterCreate: bootAfterCreate, bootAfterComplete: bootAfterComplete, bootAfterSummary: bootAfterSummary };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.GT = root.GT || {}; root.GT.router = api; }
@@ -1238,9 +1292,9 @@ window.GT_CONFIG = {
 
   function top(nav) { return nav.stack.length ? nav.stack[nav.stack.length - 1].name : null; }
 
-  // Меню-пилюля: на рабочих экранах («Сегодня», вкладки и их подэкраны, S-41); справка — поверх, меню скрыто.
-  function menuVisible(desc, nav, helpOpen) {
-    if (!desc || desc.screen !== 'today' || helpOpen) return false;
+  // Меню-пилюля: на рабочих экранах («Сегодня», вкладки и их подэкраны, S-41); справка и S-06 (consentOpen) — поверх, меню скрыто.
+  function menuVisible(desc, nav, helpOpen, consentOpen) {
+    if (!desc || desc.screen !== 'today' || helpOpen || consentOpen) return false;
     return !NO_MENU_SUB[top(nav)];
   }
 
@@ -1251,16 +1305,23 @@ window.GT_CONFIG = {
 
   // BackButton: inner — выбор самого экрана: undefined — по умолчанию, false — скрыть, функция — свой шаг назад (шаг мастера).
   // Справка закрывается BackButton; на корневых экранах (вкладки без подэкрана, запуск, доступ, согласия, S-33, S-40) кнопки нет.
-  function backVisible(desc, nav, helpOpen, inner) {
-    if (helpOpen) return true;
+  // S-06 (consentOpen) лежит поверх любого экрана; BackButton на нём = «Отказаться».
+  function backVisible(desc, nav, helpOpen, inner, consentOpen) {
+    if (consentOpen || helpOpen) return true;
     if (inner === false) return false;
     if (typeof inner === 'function') return true;
     return !!desc && desc.screen === 'today' && nav.stack.length > 0;
   }
 
   // MainButton «Сохранить»: только «Сегодня» (без подэкранов и справки) и только при несохранённом
-  function mainButtonVisible(desc, nav, helpOpen, unsaved) {
-    return !!unsaved && router.saveButtonAllowed(desc, nav, helpOpen);
+  function mainButtonVisible(desc, nav, helpOpen, unsaved, consentOpen) {
+    return !!unsaved && !consentOpen && router.saveButtonAllowed(desc, nav, helpOpen);
+  }
+
+  // MainButton «Готово» мастера: только шаг M-2 (wizardStep === 2), на экране запуска или подэкране вкладки; справка и S-06 её скрывают
+  function wizardDoneVisible(desc, nav, helpOpen, consentOpen, wizardStep) {
+    if (wizardStep !== 2 || helpOpen || consentOpen || !desc) return false;
+    return desc.screen === 'wizard' || (desc.screen === 'today' && top(nav) === 'wizard');
   }
 
   // Значки пунктов меню (из design-preview): [тег, атрибуты] в SVG 24×24
@@ -1273,9 +1334,62 @@ window.GT_CONFIG = {
       ['line', { x1: '14', x2: '14', y1: '2', y2: '6' }], ['line', { x1: '8', x2: '8', y1: '10', y2: '14' }], ['line', { x1: '16', x2: '16', y1: '18', y2: '22' }]]
   };
 
-  var api = { NO_MENU_SUB: NO_MENU_SUB, TAB_ICONS: TAB_ICONS, menuVisible: menuVisible, keyboardOpen: keyboardOpen, backVisible: backVisible, mainButtonVisible: mainButtonVisible };
+  var api = { NO_MENU_SUB: NO_MENU_SUB, TAB_ICONS: TAB_ICONS, menuVisible: menuVisible, keyboardOpen: keyboardOpen, backVisible: backVisible, mainButtonVisible: mainButtonVisible, wizardDoneVisible: wizardDoneVisible };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.GT = root.GT || {}; root.GT.chrome = api; }
+})(globalThis);
+
+;
+// Обёртка Telegram MainButton: единственное место, где вызываются её методы. Без DOM; браузер и Node.
+// Один постоянный обработчик onClick регистрируется при создании и вызывает onClick текущего владельца («save», позже «wizard»);
+// смена владельца меняет только внутреннее состояние и перерисовывает кнопку (apply), onClick/offClick у Telegram не трогает.
+(function (root) {
+  'use strict';
+
+  // tg — Telegram.WebApp или null; colorsFn() → { btn, ink } (цвет акцента темы и текст на нём)
+  function create(tg, colorsFn) {
+    var mb = tg && tg.MainButton ? tg.MainButton : null;
+    var owner = null;
+    var spec = null;   // { text, onClick, enabled, loading, visible }
+    var applied = null; // подпись последнего применённого состояния: повторный apply с тем же состоянием вызовов Telegram не делает
+
+    function dispatch() {
+      if (!owner || !spec || spec.loading || !spec.onClick) return;
+      spec.onClick();
+    }
+
+    function apply() {
+      if (!mb) return;
+      var show = !!owner && !!spec && spec.visible !== false;
+      var c = colorsFn ? colorsFn() : {};
+      var sig = show ? ['show', spec.text, spec.enabled !== false, !!spec.loading, c.btn, c.ink].join('|') : 'hide';
+      if (sig === applied) return;
+      applied = sig;
+      try {
+        if (show) {
+          mb.setParams({ text: spec.text, color: c.btn, text_color: c.ink, is_active: spec.enabled !== false });
+          mb.show();
+          if (spec.loading) mb.showProgress(false); else mb.hideProgress();
+        } else { mb.hideProgress(); mb.hide(); }
+      } catch (e) { /* старый клиент Telegram без этих методов: кнопка рисуется на странице */ }
+    }
+
+    if (mb) { try { mb.onClick(dispatch); } catch (e) { /* без кнопки Telegram действие рисуется на странице */ } }
+
+    return {
+      available: function () { return !!mb; },
+      claim: function (name, s) { owner = name; spec = Object.assign({}, s); apply(); },
+      update: function (name, patch) { if (owner !== name) return; spec = Object.assign({}, spec, patch); apply(); },
+      release: function (name) { if (owner !== name) return; owner = null; spec = null; apply(); },
+      owner: function () { return owner; },
+      apply: apply,
+      destroy: function () { owner = null; spec = null; if (mb) { try { mb.offClick(dispatch); } catch (e) { /* не критично */ } } }
+    };
+  }
+
+  var api = { create: create };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else { root.GT = root.GT || {}; root.GT.mainButton = api; }
 })(globalThis);
 
 ;
@@ -1286,7 +1400,14 @@ window.GT_CONFIG = {
 
   var router = (typeof module !== 'undefined' && module.exports) ? require('./router.js') : root.GT.router;
 
-  // opts: api ({call}), expectedEnv, startParam (строка из Telegram), tz, onScreen(descriptor)
+  // 17 методов записи под правилом согласия на здоровье (api.md healthConsent.accept, «Где требуется действующее согласие»)
+  var HEALTH_METHODS = {};
+  ['goal.create', 'goal.update', 'goal.complete', 'goal.raiseBar', 'goal.dismissReached', 'action.create', 'action.update', 'action.archive',
+    'task.create', 'task.update', 'task.setDone', 'task.archive', 'fact.set', 'day.save', 'day.completeAll', 'day.finish', 'reflection.save']
+    .forEach(function (m) { HEALTH_METHODS[m] = true; });
+
+  // opts: api ({call}), expectedEnv, startParam (строка из Telegram), tz, onScreen(descriptor),
+  // askHealthConsent({ version, outdated, accept(version) }) → Promise<boolean> — показать S-06 (true — согласие дано, false — отказ)
   function createFlow(opts) {
     var api = opts.api;
     var start = router.parseStartParam(opts.startParam);
@@ -1359,6 +1480,56 @@ window.GT_CONFIG = {
       });
     }
 
+    // ---------- S-06: согласие на сведения о здоровье (api.md healthConsent.accept, screens.md S-06) ----------
+    // Свежий healthConsent из app.bootstrap кладём в уже показанный boot, не перерисовывая экран (введённое не теряется).
+    // me.healthConsentGiven в активной цели повторяет healthConsent.given (api.md, контракт 10.2): обновляем вместе.
+    function setHealth(hc) {
+      if (!state.boot) return;
+      state.boot.healthConsent = hc;
+      var me = state.boot.activeGoal && state.boot.activeGoal.me;
+      if (me) me.healthConsentGiven = hc.given;
+    }
+    function refreshHealth() {
+      return api.call('app.bootstrap', bootParams(), { reason: 'action' }).then(function (res) {
+        if (!res.ok) return null;
+        setHealth(res.data.healthConsent);
+        return res.data.healthConsent;
+      });
+    }
+
+    // Принять согласие на показанную версию: { ok:true } | { ok:false, error, outdated?, version? }.
+    // outdated: версия сменилась — bootstrap перезагружен, version — новая, экран S-06 показывает пояснение.
+    function acceptHealth(version) {
+      return api.call('healthConsent.accept', { version: version }, { reason: 'action' }).then(function (res) {
+        if (res.ok) {
+          setHealth(res.data.healthConsent);
+          return { ok: true };
+        }
+        if (res.error.code !== 'health_consent_outdated') return { ok: false, error: res.error };
+        return refreshHealth().then(function (hc) { return { ok: false, error: res.error, outdated: true, version: hc ? hc.version : version }; });
+      });
+    }
+
+    // Метод записи вернул health_consent_*: S-06 → accept → повтор действия → bootstrap.
+    // Повтор идёт с НОВЫМ requestId: первая попытка ничего не записала (проверка до записи), а контракт не гарантирует,
+    // что ответ с ошибкой не сохранён в журнале запросов. Отказ: действие не выполняется, вызвавший экран получает исходную ошибку.
+    function healthConsentRetry(method, params, callOpts, res) {
+      var d = res.error.details;
+      var outdated = res.error.code === 'health_consent_outdated';
+      var version = d && d.version;
+      var ready = outdated || !version ? refreshHealth().then(function (hc) { return hc ? hc.version : version; }) : Promise.resolve(version);
+      return ready.then(function (v) {
+        return opts.askHealthConsent({ version: v, outdated: outdated, accept: acceptHealth });
+      }).then(function (accepted) {
+        if (!accepted) return res;
+        var o = Object.assign({}, callOpts);
+        delete o.requestId;
+        return api.call(method, params, o).then(function (again) {
+          return refreshHealth().then(function () { return again; });
+        });
+      });
+    }
+
     // Любой вызов рабочего экрана идёт через call: общие реакции на ошибки собраны здесь.
     function call(method, params, callOpts) {
       return api.call(method, params, callOpts).then(function (res) {
@@ -1366,6 +1537,9 @@ window.GT_CONFIG = {
         var code = res.error.code;
         if (code === 'consent_required') {
           return rerun().then(function () { return res; }); // bootstrap вернёт consent.required → S-05
+        }
+        if ((code === 'health_consent_required' || code === 'health_consent_outdated') && HEALTH_METHODS[method] && opts.askHealthConsent) {
+          return healthConsentRetry(method, params, callOpts, res);
         }
         if (code === 'auth_expired' || code === 'auth_invalid' || code === 'version_unsupported') {
           emit({ screen: router.screenForError(code), error: res.error });
@@ -1378,12 +1552,13 @@ window.GT_CONFIG = {
       run: run,
       retry: rerun,
       acceptConsent: acceptConsent,
+      acceptHealth: acceptHealth,
       call: call,
       get state() { return state; }
     };
   }
 
-  var api = { createFlow: createFlow };
+  var api = { createFlow: createFlow, HEALTH_METHODS: HEALTH_METHODS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.GT = root.GT || {}; root.GT.flow = api; }
 })(globalThis);
@@ -1721,8 +1896,15 @@ window.GT_CONFIG = {
       direction: g.direction, inputMode: g.inputMode, startDate: g.startDate, endDate: g.endDate, status: g.status,
       reachedDismissed: g.reachedDismissed, rev: g.rev, createdAt: g.createdAt };
   }
-  function goalBrief(g) {
-    return { id: g.id, title: g.title, unit: g.unit, direction: g.direction, startDate: g.startDate, endDate: g.endDate, inputMode: g.inputMode, status: g.status };
+  // me (контракт 10.2): статус запрашивающего в этой цели; обязателен в today и goalBrief
+  function goalMe(ctx, g) {
+    var id = ctx.me && ctx.me.id;
+    return { left: !!id && (g.leftMemberIds || []).indexOf(id) >= 0,
+      returnedOn: id && g.returnedOn && g.returnedOn[id] || null, healthConsentGiven: healthView(ctx.S).given };
+  }
+  function goalBrief(ctx, g) {
+    return { id: g.id, title: g.title, unit: g.unit, direction: g.direction, startDate: g.startDate, endDate: g.endDate, inputMode: g.inputMode, status: g.status,
+      me: goalMe(ctx, g) };
   }
   function pubAction(a) {
     var v = lastVersion(a);
@@ -1872,6 +2054,7 @@ window.GT_CONFIG = {
         return { id: m.id, displayName: m.displayName, factEntered: dayEntered(S, goal, m.id, date),
           doneCount: pf.doneCount, totalCount: pf.totalCount, percent: pf.percent, percentRaw: pf.percentRaw };
       }),
+      me: goalMe(ctx, goal),
       prompts: { goalReached: isReached(ctx, goal), reflectionGoalId: pendingReflection(S, me && me.id), needsNewGoal: false },
       serverTime: ctx.nowIso
     };
@@ -2108,7 +2291,7 @@ window.GT_CONFIG = {
       me: access === 'none' ? null : { memberId: me.id }, // своя запись в кабинете; клиент ищет себя по ней, а не по роли
       notifyStatus: S.user.notifyStatus, access: access, role: role,
       cabinet: access === 'none' ? null : cabinetBrief(ctx),
-      activeGoal: access === 'none' || !goal ? null : goalBrief(goal),
+      activeGoal: access === 'none' || !goal ? null : goalBrief(ctx, goal),
       hasArchivedGoals: access !== 'none' && S.goals.some(function (g) { return g.status === 'completed'; }),
       prompts: { goalReached: writable && !!goal && isReached(ctx, goal), reflectionGoalId: writable ? pendingReflection(S, me.id) : null,
         needsNewGoal: writable && role === 'owner' && !goal,
@@ -4272,10 +4455,9 @@ window.GT_CONFIG = {
   }
 
   function spinner() { return h('div', { class: 'spinner', role: 'status' }); }
-  function section(title, children) { return h('section', { class: 'card' }, title ? h('h3', { text: title }) : null, children); }
 
   root.GT.ui = { h: h, button: button, field: field, numberInput: numberInput, parseNum: parseNum, toast: toast,
-    confirmDialog: confirmDialog, wordDialog: wordDialog, spinner: spinner, section: section };
+    confirmDialog: confirmDialog, wordDialog: wordDialog, spinner: spinner };
 })(globalThis);
 
 ;
@@ -4291,7 +4473,7 @@ window.GT_CONFIG = {
 
   function message(env, title, text, retry) {
     var el = env.h('div', null, env.h('h2', { text: title }), env.h('p', { text: text }));
-    if (retry) el.appendChild(env.h('div', { class: 'actions' }, env.U.button(env.t('common.retry'), retry)));
+    if (retry) el.appendChild(env.h('div', { class: 'stack' }, env.U.button(env.t('common.retry'), retry)));
     return el;
   }
 
@@ -4318,7 +4500,7 @@ window.GT_CONFIG = {
     var updated = c.acceptedVersion != null;
     var box = h('input', { type: 'checkbox', id: 'consent-box' });
     var btn = env.U.button(env.t('consent.submit'), null, { disabled: true });
-    var notice = h('p', { class: 'notice', id: 'consent-notice', hidden: true });
+    var notice = h('p', { class: 'sub', id: 'consent-notice', hidden: true });
     var errBox = h('p', { class: 'error', hidden: true });
     box.addEventListener('change', function () { btn.disabled = !box.checked; });
     btn.addEventListener('click', function () {
@@ -4340,21 +4522,35 @@ window.GT_CONFIG = {
     });
     return h('div', null, notice,
       h('h2', { text: env.t(updated ? 'consent.titleUpdated' : 'consent.title') }),
-      h('p', { text: env.t('consent.intro') }),
-      h('p', null, env.U.button(env.t('consent.policyLink'), function () { env.openLink(env.cfg.PRIVACY_URL || '#'); }, { secondary: true })),
-      h('p', { text: env.t('consent.version', { version: c.version }) }),
-      h('label', { class: 'check', for: 'consent-box' }, box, h('span', { text: env.t('consent.checkbox') })),
-      errBox, btn);
+      h('div', { class: 'panel' },
+        h('section', { class: 'blk' },
+          h('p', { text: env.t('consent.intro') }),
+          h('p', null, env.U.button(env.t('consent.policyLink'), function () { env.openLink(env.cfg.PRIVACY_URL || '#'); }, { secondary: true })),
+          h('p', { class: 'sub', text: env.t('consent.version', { version: c.version }) })),
+        h('section', { class: 'blk' },
+          h('label', { class: 'check', for: 'consent-box' }, box, h('span', { text: env.t('consent.checkbox') })),
+          errBox, h('div', { class: 'stack' }, btn))));
   };
 
   // ---------- S-02 Закрытая бета и S-02a просмотр пресетов ----------
   function presetCard(env, p) {
     var h = env.h;
-    return h('details', { class: 'card' },
-      h('summary', { text: p.name }),
-      h('p', { text: env.t('presets.example', { title: p.example.title || '—', days: p.example.days }) }),
-      p.actions.length ? h('ul', null, p.actions.map(function (a) { return h('li', { text: a.title + ' — ' + env.F.num(a.startNorm) + ' ' + a.unit }); })) : null,
-      p.tasks.length ? h('p', { class: 'hint', text: env.t('presets.tasks') + ' ' + p.tasks.map(function (x) { return x.title; }).join('; ') }) : null);
+    return h('details', null,
+      h('summary', { class: 'row' }, h('span', { class: 'row-main', text: p.name }), h('span', { class: 'v', text: '›' })),
+      h('p', { class: 'sub', text: env.t('presets.example', { title: p.example.title || '—', days: p.example.days }) }),
+      p.actions.length ? h('ul', { class: 'sub' }, p.actions.map(function (a) { return h('li', { text: a.title + ' — ' + env.F.num(a.startNorm) + ' ' + a.unit }); })) : null,
+      p.tasks.length ? h('p', { class: 'sub', text: env.t('presets.tasks') + ' ' + p.tasks.map(function (x) { return x.title; }).join('; ') }) : null);
+  }
+
+  // Список пресетов (S-02a): один .panel со строками-details; пока пуст — скрыт
+  function presetList(env) {
+    var rows = env.h('div', { class: 'rows' });
+    var panel = env.h('div', { class: 'panel presets', hidden: true }, rows);
+    panel.fill = function (presets) {
+      presets.forEach(function (p) { rows.appendChild(presetCard(env, p)); });
+      panel.hidden = false;
+    };
+    return panel;
   }
 
   screens.noAccess = function (env, d) {
@@ -4363,19 +4559,23 @@ window.GT_CONFIG = {
     var copy = env.U.button(env.t('noAccess.copy'), function () {
       try { navigator.clipboard.writeText(id).then(function () { copy.textContent = env.t('noAccess.copied'); }, function () {}); } catch (e) { /* выделить вручную */ }
     }, { secondary: true });
-    var list = h('div', { class: 'presets' });
+    var list = presetList(env);
     var show = env.U.button(env.t('noAccess.presets'), function () {
       show.disabled = true;
       env.presets().then(function (res) {
         if (!res.ok) { show.disabled = false; return env.fail(res); }
-        res.data.presets.forEach(function (p) { list.appendChild(presetCard(env, p)); });
+        list.fill(res.data.presets);
         show.hidden = true;
       });
     }, { secondary: true });
     return h('div', null,
-      h('h2', { text: env.t('noAccess.title') }), h('p', { text: env.t('noAccess.text') }),
-      h('p', { class: 'telegram-id', text: env.t('noAccess.telegramId', { id: id }) }), h('p', { text: env.t('noAccess.sendId') }),
-      h('div', { class: 'actions' }, copy, show), list);
+      h('h2', { text: env.t('noAccess.title') }),
+      h('div', { class: 'panel' }, h('section', { class: 'blk' },
+        h('p', { text: env.t('noAccess.text') }),
+        h('p', { class: 'telegram-id', text: env.t('noAccess.telegramId', { id: id }) }),
+        h('p', { class: 'sub', text: env.t('noAccess.sendId') }),
+        h('div', { class: 'stack' }, copy, show))),
+      list);
   };
 
   // ---------- S-03 Приглашение ----------
@@ -4392,7 +4592,8 @@ window.GT_CONFIG = {
         err.hidden = false;
       });
     });
-    return h('div', null, h('h2', { text: env.t('invite.title') }), h('p', { text: env.t('invite.text') }), err, btn);
+    return h('div', null, h('h2', { text: env.t('invite.title') }),
+      h('div', { class: 'panel' }, h('section', { class: 'blk' }, h('p', { text: env.t('invite.text') }), err, h('div', { class: 'stack' }, btn))));
   };
 
   // ---------- S-02 боевой режим (mode=codes): ввод кода активации ----------
@@ -4406,7 +4607,7 @@ window.GT_CONFIG = {
       spellcheck: 'false', 'aria-label': t('activate.field'), placeholder: t('activate.placeholder') });
     var err = h('p', { class: 'error', hidden: true, role: 'alert' });
     var btn = U.button(t('activate.submit'), function () { act.submit(input.value); });
-    var list = h('div', { class: 'presets' });
+    var list = presetList(env);
 
     function errorText(e) {
       if (e.code === 'locked') return t('activate.locked', { clock: AL.formatClock(act.state.lockLeft) });
@@ -4438,7 +4639,7 @@ window.GT_CONFIG = {
       presets.disabled = true;
       env.presets().then(function (res) {
         if (!res.ok) { presets.disabled = false; return env.fail(res); }
-        res.data.presets.forEach(function (p) { list.appendChild(presetCard(env, p)); });
+        list.fill(res.data.presets);
         presets.hidden = true;
       });
     }, { secondary: true });
@@ -4447,9 +4648,12 @@ window.GT_CONFIG = {
     var recover = env.cfg.RECOVERY_URL ? U.button(t('activate.recover'), function () { env.openLink(env.cfg.RECOVERY_URL); }, { secondary: true }) : null;
 
     render();
-    return h('div', null, h('h2', { text: t('activate.title') }), h('p', { text: t('activate.text') }),
-      U.field(t('activate.field'), input), err, h('div', { class: 'actions' }, btn, presets, recover),
-      h('p', { class: 'hint', text: t('activate.lostHint') }), list);
+    return h('div', null, h('h2', { text: t('activate.title') }),
+      h('div', { class: 'panel' }, h('section', { class: 'blk' },
+        h('p', { text: t('activate.text') }),
+        U.field(t('activate.field'), input), err, h('div', { class: 'stack' }, btn, presets, recover),
+        h('p', { class: 'sub', text: t('activate.lostHint') }))),
+      list);
   };
 
   // ---------- S-04 «Email для восстановления доступа»: три шага на одном экране ----------
@@ -4480,29 +4684,31 @@ window.GT_CONFIG = {
       shown = s.step;
       box.textContent = '';
       els = { err: h('p', { class: 'error', hidden: true, role: 'alert' }) };
+      var blk = h('section', { class: 'blk' });
       box.appendChild(h('h2', { text: t('email.title') }));
+      box.appendChild(h('div', { class: 'panel' }, blk));
       if (s.step === 'email') {
         els.email = h('input', { type: 'text', inputmode: 'email', autocomplete: 'email', autocapitalize: 'none', spellcheck: 'false', value: s.email, 'aria-label': t('email.field') });
         els.email.addEventListener('keydown', function (e) { if (e.key === 'Enter') flow.submitEmail(els.email.value); });
         els.send = U.button(t('email.send'), function () { flow.submitEmail(els.email.value); });
-        box.appendChild(h('p', { text: t('email.intro') }));
-        box.appendChild(U.field(t('email.field'), els.email));
-        box.appendChild(els.err);
-        box.appendChild(h('div', { class: 'actions' }, els.send, U.button(t('common.later'), later, { secondary: true })));
+        blk.appendChild(h('p', { text: t('email.intro') }));
+        blk.appendChild(U.field(t('email.field'), els.email));
+        blk.appendChild(els.err);
+        blk.appendChild(h('div', { class: 'stack' }, els.send, U.button(t('common.later'), later, { secondary: true })));
       } else if (s.step === 'code') {
         els.code = h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: '9', 'aria-label': t('email.codeField') });
         els.code.addEventListener('keydown', function (e) { if (e.key === 'Enter') flow.submitCode(els.code.value); });
         els.confirm = U.button(t('email.confirm'), function () { flow.submitCode(els.code.value); });
         els.resend = U.button(t('email.resend'), function () { flow.resendCode(); }, { secondary: true });
-        box.appendChild(h('p', { text: t('email.codeIntro', { email: s.email }) }));
-        box.appendChild(U.field(t('email.codeField'), els.code, t('email.codeHint')));
-        box.appendChild(els.err);
-        box.appendChild(h('div', { class: 'actions' }, els.confirm, els.resend));
-        box.appendChild(h('div', { class: 'actions' }, U.button(t('email.change'), function () { flow.changeAddress(); }, { secondary: true }),
+        blk.appendChild(h('p', { text: t('email.codeIntro', { email: s.email }) }));
+        blk.appendChild(U.field(t('email.codeField'), els.code, t('email.codeHint')));
+        blk.appendChild(els.err);
+        blk.appendChild(h('div', { class: 'stack' }, els.confirm, els.resend,
+          U.button(t('email.change'), function () { flow.changeAddress(); }, { secondary: true }),
           U.button(t('common.later'), later, { secondary: true })));
       } else {
-        box.appendChild(h('p', { class: 'notice', text: t('email.done') }));
-        box.appendChild(U.button(t('email.finish'), function () { flow.stop(); env.reboot(); }));
+        blk.appendChild(h('p', null, h('strong', { text: t('email.done') })));
+        blk.appendChild(h('div', { class: 'stack' }, U.button(t('email.finish'), function () { flow.stop(); env.reboot(); })));
       }
     }
 
@@ -4523,6 +4729,52 @@ window.GT_CONFIG = {
     build();
     sync();
     return box;
+  };
+})(globalThis);
+
+;
+// S-06 «Согласие на сведения о здоровье» (контракт 10). Лежит поверх текущего экрана (app.js askHealthConsent):
+// введённое под ним не теряется, «Отказаться» (и BackButton) закрывает S-06 без действия.
+// Текст согласия — ЧЕРНОВИК, утвердит юрист (docs/STATUS.md п. 17); строки — strings/ru.js, healthConsent.
+(function (root) {
+  'use strict';
+
+  var screens = root.GT.screens = root.GT.screens || {};
+
+  // p: { version, outdated, accept(version) → Promise<{ok, error?, outdated?, version?}>, onAccept(), onDecline() }
+  screens.healthConsent = function (env, p) {
+    var h = env.h;
+    var version = p.version;
+    var box = h('input', { type: 'checkbox', id: 'health-box' });
+    var btn = env.U.button(env.t('healthConsent.submit'), null, { disabled: true });
+    var decline = env.U.button(env.t('healthConsent.decline'), p.onDecline, { secondary: true });
+    var notice = h('p', { class: 'sub', id: 'health-notice', text: env.t('healthConsent.outdated'), hidden: !p.outdated });
+    var errBox = h('p', { class: 'error', hidden: true });
+    box.addEventListener('change', function () { btn.disabled = !box.checked; });
+    btn.addEventListener('click', function () {
+      if (!box.checked) return;
+      btn.disabled = true;
+      errBox.hidden = true;
+      p.accept(version).then(function (r) {
+        if (r.ok) return p.onAccept();
+        if (r.outdated) { // версия сменилась: новый текст, согласие подтверждается заново
+          version = r.version;
+          box.checked = false;
+          notice.hidden = false;
+          return;
+        }
+        errBox.textContent = env.S.errorText(r.error); // галочка остаётся как была
+        errBox.hidden = false;
+        btn.textContent = env.t('common.retry');
+        btn.disabled = !box.checked;
+      });
+    });
+    return h('div', { class: 'health-consent' }, notice,
+      h('h2', { text: env.t('healthConsent.title') }),
+      h('p', { class: 'small', text: env.t('healthConsent.text') }),
+      h('label', { class: 'check', for: 'health-box' }, box, h('span', { text: env.t('healthConsent.checkbox') })),
+      errBox,
+      h('div', { class: 'stack' }, btn, decline));
   };
 })(globalThis);
 
@@ -4550,6 +4802,11 @@ window.GT_CONFIG = {
     var errors = {};
     var tried = false;
     var request = null; // { key, requestId } — повтор той же отправки с тем же requestId
+    var sending = false; // goal.create в пути (включая ожидание повтора после S-06): повторное нажатие игнорируется
+    var submitError = null; // текст сетевой ошибки/limit_reached у места кнопки
+    var claimed = false; // «Готово» в MainButton: один claim за жизнь мастера, дальше только update
+    var left = false;
+    var pageDone = null; // страничная «Готово» (вне Telegram)
     var moduleTasks = !!(env.boot().cabinet && env.boot().cabinet.modules.oneOffTasks);
     var tz = env.boot().cabinet ? env.boot().cabinet.timezone : 'Europe/Moscow';
 
@@ -4560,29 +4817,43 @@ window.GT_CONFIG = {
     }
     function refresh() { errors = tried ? W.validate(draft, env.todayStr(), env.boot().limits.maxActions) : {}; }
 
+    // ----- «Готово» в MainButton (в Telegram) -----
+    function releaseDone() {
+      if (claimed) { env.mainButton.release('wizard'); claimed = false; }
+    }
+    function syncDone() {
+      if (left || !env.hasMainButton()) return;
+      var spec = { text: t('wizard.done'), onClick: press, enabled: true, loading: sending, visible: env.wizardVisible() };
+      if (claimed) env.mainButton.update('wizard', spec);
+      else { env.mainButton.claim('wizard', spec); claimed = true; }
+    }
+    env.onLeave(function () { left = true; releaseDone(); });
+
     // ----- M-1 -----
     function step1() {
       onStep1 = true;
+      releaseDone();
       env.setBack(); // с S-41 BackButton ведёт назад на S-41, на первом запуске его нет
       box.textContent = '';
       box.appendChild(h('h2', { text: t('wizard.title') }));
-      box.appendChild(h('p', { text: t('wizard.pickPreset') }));
+      box.appendChild(h('p', { class: 'sub', text: t('wizard.pickPreset') }));
       if (!presets) { box.appendChild(U.spinner()); return; }
+      var rows = h('div', { class: 'rows' });
       presets.forEach(function (p) {
-        box.appendChild(h('button', { type: 'button', class: 'preset', onclick: function () {
+        rows.appendChild(h('button', { type: 'button', class: 'row', onclick: function () {
           draft = W.initDraft(p, { today: env.todayStr(), timezone: tz });
           tried = false; errors = {};
           step2();
-        } }, h('strong', { text: p.name }), h('span', { text: p.example.title || t('wizard.customHint') })));
+        } }, h('span', { class: 'row-main' }, h('strong', { text: p.name }), h('span', { class: 'sub', text: p.example.title || t('wizard.customHint') })),
+        h('span', { class: 'v', text: '›' })));
       });
+      box.appendChild(h('div', { class: 'panel' }, h('section', { class: 'blk' }, rows)));
     }
 
     // ----- M-2 -----
-    function seg(options, current, onpick) { // переключатель из кнопок
+    function seg(options, current, onpick) { // переключатель из кнопок: выбранный — aria-pressed="true"
       return h('div', { class: 'seg' }, options.map(function (o) {
-        var b = h('button', { type: 'button', class: o.value === current ? 'on' : 'secondary', text: o.label, onclick: function () { onpick(o.value); } });
-        if (o.value === current) b.setAttribute('aria-pressed', 'true');
-        return b;
+        return h('button', { type: 'button', 'aria-pressed': o.value === current ? 'true' : 'false', text: o.label, onclick: function () { onpick(o.value); } });
       }));
     }
 
@@ -4595,8 +4866,10 @@ window.GT_CONFIG = {
       var ceil = U.numberInput(a.normCeiling, function (v) { a.normCeiling = v; refresh(); step2(true); }, { aria: t('wizard.ceiling'), class: 'num' });
       var lag = h('input', { type: 'checkbox', checked: !!a.growsOnLag });
       lag.addEventListener('change', function () { a.growsOnLag = lag.checked; });
+      var remove = U.button(t('wizard.remove'), function () { draft.actions.splice(i, 1); refresh(); step2(true); }, { secondary: true, aria: t('wizard.remove') });
+      remove.classList.add('sm');
       return h('div', { class: 'action-row' },
-        h('div', { class: 'row' }, title, U.button(t('wizard.remove'), function () { draft.actions.splice(i, 1); refresh(); step2(true); }, { secondary: true, aria: t('wizard.remove') })),
+        h('div', { class: 'row' }, title, remove),
         errText('actions.' + i + '.title') ? h('p', { class: 'field-error', text: errText('actions.' + i + '.title') }) : null,
         h('div', { class: 'row' },
           U.button('−', function () { W.stepNorm(a, -1); step2(true); }, { aria: t('wizard.less') }),
@@ -4629,42 +4902,53 @@ window.GT_CONFIG = {
         draft.endDate = end.value; draft.days = env.D.diffDays(end.value, draft.startDate) + 1; refresh(); step2(true);
       });
 
+      function blk(titleKey) { return h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t(titleKey) })); }
+      function put(parent, kids) { kids.forEach(function (k) { if (k) parent.appendChild(k); }); return parent; }
+      var panel = h('div', { class: 'panel' });
       box.appendChild(h('h2', { text: t('wizard.step2') }));
-      box.appendChild(U.field(t('wizard.fTitle'), title, t('wizard.hintTitle'), errText('title')));
-      box.appendChild(U.field(t('wizard.fUnit'), unit, t('wizard.hintUnit'), errText('unit')));
-      box.appendChild(h('div', { class: 'field' }, h('span', { class: 'label', text: t('wizard.fDirection') }),
-        seg([{ value: 'growth', label: t('wizard.growth') }, { value: 'decline', label: t('wizard.decline') }], draft.direction,
-          function (v) { draft.direction = v; refresh(); step2(true); })));
-      box.appendChild(U.field(t('wizard.fStart'), start, t('wizard.hintStart'), errText('startValue')));
+      box.appendChild(panel);
+
       var targetField = U.field(t('wizard.fTarget'), target, t('wizard.hintTarget'), errText('targetValue'));
       if (highlightTarget && draft.startValue === draft.targetValue) targetField.classList.add('highlight');
-      box.appendChild(targetField);
-      box.appendChild(h('div', { class: 'field' }, h('span', { class: 'label', text: t('wizard.fStartDate') }),
+      panel.appendChild(put(blk('wizard.secGoal'), [
+        U.field(t('wizard.fTitle'), title, t('wizard.hintTitle'), errText('title')),
+        U.field(t('wizard.fUnit'), unit, t('wizard.hintUnit'), errText('unit')),
+        h('div', { class: 'field' }, h('span', { class: 'label', text: t('wizard.fDirection') }),
+          seg([{ value: 'growth', label: t('wizard.growth') }, { value: 'decline', label: t('wizard.decline') }], draft.direction,
+            function (v) { draft.direction = v; refresh(); step2(true); })),
+        U.field(t('wizard.fStart'), start, t('wizard.hintStart'), errText('startValue')),
+        targetField]));
+
+      var period = blk('wizard.secPeriod');
+      panel.appendChild(period);
+      period.appendChild(h('div', { class: 'field' }, h('span', { class: 'label', text: t('wizard.fStartDate') }),
         seg([{ value: 'today', label: t('wizard.startToday') }, { value: 'tomorrow', label: t('wizard.startTomorrow') }, { value: 'other', label: t('wizard.startOtherChoice') }],
           draft.startChoice, function (v) { W.setStart(draft, v, today, draft.startChoice === 'other' ? draft.startDate : undefined); refresh(); step2(true); }),
         draft.startChoice === 'other' ? h('label', null, h('span', { class: 'label', text: t('wizard.startOther') }), startOther) : null,
         draft.startChoice !== 'today' ? h('p', { class: 'hint', text: t('wizard.startHint', { date: env.F.dateFull(draft.startDate) }) }) : null,
         errText('startDate') ? h('p', { class: 'field-error', text: errText('startDate') }) : null));
-      box.appendChild(h('div', { class: 'field' }, h('span', { class: 'label', text: t('wizard.fPeriod') }),
+      period.appendChild(h('div', { class: 'field' }, h('span', { class: 'label', text: t('wizard.fPeriod') }),
         seg(W.PERIODS.map(function (n) { return { value: n, label: t('wizard.days', { n: n }) }; }), draft.days, function (n) { W.setDays(draft, n); refresh(); step2(true); }),
         h('label', null, h('span', { class: 'label', text: t('wizard.fEnd') }), end),
         errText('endDate') ? h('p', { class: 'field-error', text: errText('endDate') }) : null));
-      box.appendChild(h('div', { class: 'field' }, h('span', { class: 'label', text: t('wizard.fInputMode') }),
+      panel.appendChild(put(blk('wizard.secInput'), [h('div', { class: 'field' }, h('span', { class: 'label', text: t('wizard.fInputMode') }),
         seg([{ value: 'current', label: t('wizard.modeCurrent') }, { value: 'delta', label: t('wizard.modeDelta') }], draft.inputMode, function (v) { draft.inputMode = v; step2(true); }),
-        h('p', { class: 'hint', text: t(draft.inputMode === 'current' ? 'wizard.hintModeCurrent' : 'wizard.hintModeDelta') })));
+        h('p', { class: 'hint', text: t(draft.inputMode === 'current' ? 'wizard.hintModeCurrent' : 'wizard.hintModeDelta') }))]));
 
-      box.appendChild(h('h3', { text: t('wizard.actions') }));
-      box.appendChild(h('p', { class: 'hint', text: t('wizard.hintActions') }));
-      draft.actions.forEach(function (a, i) { box.appendChild(actionRow(a, i)); });
-      if (errors.actions) box.appendChild(h('p', { class: 'field-error', text: errText('actions') }));
-      box.appendChild(U.button(t('wizard.addAction'), function () { W.addAction(draft); step2(true); }, { secondary: true, disabled: draft.actions.length >= env.boot().limits.maxActions }));
+      var actionsBlk = blk('wizard.secActions');
+      panel.appendChild(actionsBlk);
+      actionsBlk.appendChild(h('p', { class: 'hint', text: t('wizard.hintActions') }));
+      draft.actions.forEach(function (a, i) { actionsBlk.appendChild(actionRow(a, i)); });
+      if (errors.actions) actionsBlk.appendChild(h('p', { class: 'field-error', text: errText('actions') }));
+      actionsBlk.appendChild(U.button(t('wizard.addAction'), function () { W.addAction(draft); step2(true); }, { secondary: true, disabled: draft.actions.length >= env.boot().limits.maxActions }));
 
       if (moduleTasks && draft.tasks.length) {
-        box.appendChild(h('h3', { text: t('wizard.tasks') }));
+        var tasksBlk = blk('wizard.tasks');
+        panel.appendChild(tasksBlk);
         draft.tasks.forEach(function (tk) {
           var c = h('input', { type: 'checkbox', checked: tk.checked });
           c.addEventListener('change', function () { tk.checked = c.checked; });
-          box.appendChild(h('label', { class: 'check' }, c, h('span', { text: tk.title })));
+          tasksBlk.appendChild(h('label', { class: 'check' }, c, h('span', { text: tk.title })));
         });
       }
 
@@ -4673,34 +4957,57 @@ window.GT_CONFIG = {
       if (zones.indexOf(draft.timezone) < 0) zones.unshift(draft.timezone);
       zones.forEach(function (z) { tzSel.appendChild(h('option', { value: z, text: env.F.tzLabel(z, Date.now()), selected: z === draft.timezone })); });
       tzSel.addEventListener('change', function () { draft.timezone = tzSel.value; });
-      box.appendChild(U.field(t('wizard.fTz'), tzSel, t('wizard.hintTz')));
+      panel.appendChild(put(blk('wizard.fTz'), [U.field(t('wizard.fTz'), tzSel, t('wizard.hintTz'))]));
 
-      var bottom = h('p', { class: 'error', hidden: true });
-      var done = U.button(t('wizard.done'), function () { submit(done, bottom); });
-      box.appendChild(bottom);
-      box.appendChild(h('div', { class: 'actions' }, done));
+      if (submitError) box.appendChild(h('p', { class: 'error', role: 'alert', text: submitError }));
+      pageDone = null;
+      if (!env.hasMainButton()) { // вне Telegram «Готово» — на странице внизу формы
+        pageDone = U.button(t('wizard.done'), press, { disabled: sending });
+        box.appendChild(h('div', { class: 'stack' }, pageDone));
+      }
+      syncDone();
       env.setBack(step1); // шаг назад — BackButton (вне Telegram «←» в шапке), своей кнопки «Назад» нет
       if (keepScroll) window.scrollTo(0, y);
     }
 
-    function submit(btn, bottom) {
+    function scrollToError() {
+      var first = document.querySelector('.field-error');
+      if (first) first.scrollIntoView({ block: 'center' });
+    }
+
+    // Нажатие «Готово»: по валидации кнопка не блокируется — подсвечиваем ошибки и прокручиваем к первой
+    function press() {
+      if (sending || left) return;
       tried = true;
       refresh();
-      if (Object.keys(errors).length) { step2(true); var first = document.querySelector('.field-error'); if (first) first.scrollIntoView({ block: 'center' }); return; }
+      submitError = null;
+      step2(true); // перерисовка без прежних p.error и серверных .field-error, остаются только свежие ошибки валидации
+      if (Object.keys(errors).length) { scrollToError(); return; }
       var params = W.toParams(draft, moduleTasks);
       var key = JSON.stringify(params);
       if (!request || request.key !== key) request = { key: key, requestId: null };
-      btn.disabled = true;
-      bottom.hidden = true;
+      sending = true;
+      submitError = null;
+      if (pageDone) pageDone.disabled = true;
+      syncDone();
       env.call('goal.create', params, request.requestId ? { requestId: request.requestId } : undefined).then(function (res) {
         request.requestId = res.requestId;
-        if (res.ok) { step3(res.data, params); return; }
-        btn.disabled = false;
-        if (res.error.code === 'validation_failed') { errors = W.serverFields(res.error.details && res.error.details.fields); step2(true); }
-        if (res.error.code === 'goal_active_exists') return env.reboot();
-        bottom.textContent = env.S.errorText(res.error) + (res.error.code === 'network' ? '' : '');
-        bottom.hidden = false;
-        btn.textContent = res.error.code === 'network' ? t('common.retry') : t('wizard.done');
+        if (res.ok) { sending = false; step3(res.data, params); return; }
+        if (res.error.code === 'goal_active_exists') return env.reboot(); // sending остаётся: экран сейчас пересоберётся
+        sending = false;
+        if (left) return;
+        if (res.error.code === 'validation_failed') {
+          errors = W.serverFields(res.error.details && res.error.details.fields);
+          step2(true);
+          if (document.querySelector('.field-error')) { scrollToError(); return; }
+          submitError = env.S.errorText(res.error); // ни одно поле не подсвечено: общий текст, как у остальных ошибок
+          env.toast(submitError, 'error');
+          step2(true);
+          return;
+        }
+        submitError = env.S.errorText(res.error); // сеть, таймаут, limit_reached: рядом с кнопкой и toast, введённое остаётся
+        env.toast(submitError, 'error');
+        step2(true);
       });
     }
 
@@ -4708,30 +5015,33 @@ window.GT_CONFIG = {
     function step3(data, sent) {
       var goal = data.goal;
       onStep1 = false;
+      releaseDone(); // на M-3 MainButton скрыта: «К сегодняшнему дню» и «Разрешить» — кнопки на странице
       env.setBack(false); // цель уже создана: назад к выбору пресета нельзя
       box.textContent = '';
-      var notify = h('div', { class: 'card' });
+      var panel = h('div', { class: 'panel' });
+      var notify = h('section', { class: 'blk' });
+      panel.appendChild(notify);
       function renderNotify() {
         notify.textContent = '';
         if (env.boot().notifyStatus === 'ok') return;
-        notify.appendChild(h('h3', { text: t('wizard.notifyTitle') }));
-        notify.appendChild(h('p', { text: t('wizard.notifyText') }));
+        notify.appendChild(h('h3', { class: 'sec', text: t('wizard.notifyTitle') }));
+        notify.appendChild(h('p', { class: 'sub', text: t('wizard.notifyText') }));
         var report = function (granted) {
-          env.call('notify.reportWriteAccess', { granted: granted }).then(function () { notify.remove(); });
+          env.call('notify.reportWriteAccess', { granted: granted }).then(function () { panel.remove(); });
         };
-        notify.appendChild(h('div', { class: 'actions' },
+        notify.appendChild(h('div', { class: 'stack' },
           U.button(t('wizard.notifyAllow'), function () {
             if (env.tg && env.tg.requestWriteAccess) env.tg.requestWriteAccess(function (granted) { report(!!granted); });
             else report(true); // вне Telegram (mock) просто сообщаем «разрешено»
           }),
-          U.button(t('wizard.notifySkip'), function () { notify.remove(); }, { secondary: true })));
+          U.button(t('wizard.notifySkip'), function () { panel.remove(); }, { secondary: true })));
       }
       renderNotify();
       box.appendChild(h('h2', { text: t('wizard.created', { title: goal.title }) }));
-      box.appendChild(notify);
-      box.appendChild(h('p', { class: 'hint', text: t('wizard.inviteLater') }));
+      if (env.boot().notifyStatus !== 'ok') box.appendChild(panel);
+      box.appendChild(h('p', { class: 'sub', text: t('wizard.inviteLater') }));
       // Экран строится из ответа goal.create (todayPlan = null — «Цель начнётся»), app.bootstrap не вызывается
-      box.appendChild(U.button(t('wizard.toToday'), function () { env.goalCreated(data, sent); }));
+      box.appendChild(h('div', { class: 'stack' }, U.button(t('wizard.toToday'), function () { env.goalCreated(data, sent); })));
     }
 
     if (params && params.repeat) { // «Повторить эту цель»: сразу шаг 2; заготовки (presets) нужны только для кнопки «Назад»
@@ -4801,8 +5111,8 @@ window.GT_CONFIG = {
     var t = env.t;
     var box = h('div', { class: 'today' });
     box.appendChild(h('h2', { text: t('noGoal.none') }));
-    if (env.boot().hasArchivedGoals) box.appendChild(h('p', { text: t('noGoal.archived') }));
-    if (env.isOwner() && !env.readOnly()) box.appendChild(env.U.button(t('noGoal.create'), function () { env.go('wizard', {}); }));
+    if (env.boot().hasArchivedGoals) box.appendChild(h('p', { class: 'sub', text: t('noGoal.archived') }));
+    if (env.isOwner() && !env.readOnly()) box.appendChild(h('div', { class: 'stack' }, env.U.button(t('noGoal.create'), function () { env.go('wizard', {}); })));
     else if (!env.readOnly()) box.appendChild(h('p', { class: 'hint', text: t('noGoal.ownerOnly') }));
     return box;
   };
@@ -4814,9 +5124,10 @@ window.GT_CONFIG = {
     var t = env.t;
     var F = env.F;
     var U = env.U;
-    var ro = env.readOnly();
+    var left = env.left();   // вышедший участник: только чтение, записей нет (контракт 10.2: me.left)
+    var ro = env.readOnly() || left;
     var box = h('div', { class: 'today' });
-    var editing = null;      // actionId, у которого сейчас открыт ввод числа
+    var editing = null;     // actionId, у которого сейчас открыт ввод числа
     var statusEl = null;
     var highlightDone = false;
     var me = env.myMember();
@@ -4859,7 +5170,7 @@ window.GT_CONFIG = {
       var label = date === today ? t('today.todayLabel', { date: F.dayLong(date) }) : F.dayLong(date);
       var prev = U.button('←', function () { go(env.D.addDays(date, -1)); }, { secondary: true, aria: t('today.prevDay'), disabled: !!goalBrief && date <= goalBrief.startDate });
       var next = U.button('→', function () { go(env.D.addDays(date, 1)); }, { secondary: true, aria: t('today.nextDay'), disabled: date >= today });
-      return h('section', { class: 'card day-head' },
+      return h('section', { class: 'blk day-head' },
         h('div', { class: 'row between' }, prev, h('strong', { text: label }), next),
         h('p', { class: 'goal-line', text: t('today.goalLine', { cur: F.num(d.goal.currentValue), target: F.num(d.goal.targetValue), unit: d.goal.unit,
           rem: F.num(Math.max(0, rem)), days: d.goal.daysLeft, daysWord: F.plural(d.goal.daysLeft, [t('today.day1'), t('today.day2'), t('today.day5')]) }) }),
@@ -4934,7 +5245,7 @@ window.GT_CONFIG = {
         if (v !== null && (mode === 'delta' || v >= 0)) ctrl.setProgress(v);
         else draw();
       });
-      return h('section', { class: 'card' },
+      return h('section', { class: 'blk' },
         h('label', null, h('span', { class: 'label', text: t(mode === 'current' ? 'today.progressNow' : 'today.progressAdded') }),
           h('div', { class: 'row stepper' },
             ro ? null : U.button('−', function () { ctrl.stepProgress(-1, step); }, { aria: t('today.progressLess') }),
@@ -4949,7 +5260,7 @@ window.GT_CONFIG = {
       var K = ctrl.entered();
       var total = d.actions.length;
       var others = d.members.filter(function (m) { return !me || m.id !== me.id; });
-      return h('section', { class: 'card' },
+      return h('section', { class: 'blk' },
         total ? h('p', { class: 'summary', text: t('today.summary', { done: sum.doneCount, total: sum.totalCount, p: sum.percent }) }) : null,
         total ? h('p', { class: sum.dayEntered ? 'entered ok' : 'entered', text: sum.dayEntered ? t('today.dayEntered') : t('today.entered', { k: K, m: total }) }) : null,
         others.map(function (m) {
@@ -4961,15 +5272,15 @@ window.GT_CONFIG = {
     function tasksBlock() {
       var d = s().data;
       if (!d.tasks) return null;
-      return h('section', { class: 'card' }, h('h3', { text: t('today.tasks') }),
+      return h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('today.tasks') }),
         d.tasks.length ? d.tasks.map(function (tk) {
           var c = h('input', { type: 'checkbox', checked: tk.done, disabled: ro });
           c.addEventListener('change', function () {
             tk.done = c.checked;
             env.call('task.setDone', { taskId: tk.id, done: c.checked }).then(function (res) { if (!res.ok) { tk.done = !c.checked; env.fail(res); } draw(); });
           });
-          return h('label', { class: 'check' + (tk.overdue ? ' overdue' : '') }, c,
-            h('span', { text: tk.title + (tk.overdue ? ' · ' + t('today.overdue') : '') }));
+          return h('label', { class: 'task' + (tk.done ? ' done' : '') + (tk.overdue ? ' late' : '') }, c,
+            h('div', null, h('span', { class: 't', text: tk.title }), tk.overdue ? h('span', { class: 'sub', text: t('today.overdue') }) : null));
         }) : h('p', { class: 'hint', text: t('today.noTasks') }),
         ro ? null : U.button(t('today.addTask'), function () { env.go('tasks', { goalId: d.goal.id }); }, { secondary: true }));
     }
@@ -4991,9 +5302,19 @@ window.GT_CONFIG = {
         box.appendChild(h('div', { class: 'undo-bar' }, h('span', { text: t('today.allMarked') }), U.button(t('today.undo'), function () { ctrl.undo(); }, { secondary: true })));
       }
       if (s().status === 'error') box.appendChild(errorBanner());
-      box.appendChild(dayHeader());
-      var fact = h('section', { class: 'card fact' + (params.factMode && !highlightDone ? ' highlight' : ''), id: 'fact' }, h('h3', { text: t('today.factTitle') }));
-      if (!d.actions.length) fact.appendChild(h('p', { class: 'hint', text: t('today.noActions') }));
+      if (left) {
+        box.appendChild(h('section', { class: 'blk' }, h('p', { text: t('today.leftText') }),
+          U.button(t('today.leftJoin'), function () { env.joinHealth(); })));
+      }
+      var panel = h('div', { class: 'panel' }); // v8: один контейнер, блоки разделены линией
+      panel.appendChild(dayHeader());
+      var fact = h('section', { class: 'blk fact' + (params.factMode && !highlightDone ? ' highlight' : ''), id: 'fact' }, h('h3', { text: t('today.factTitle') }));
+      var banner = !ro && env.returnedToday(s().date); // баннер: только день возврата
+      if (banner) fact.appendChild(h('p', { class: 'hint', text: t('today.returnedText') }));
+      if (!d.actions.length && !ro) { // пустой план у любого участника: одна кнопка «Добавить действия», без дубля текста при баннере
+        if (!banner) fact.appendChild(h('p', { class: 'hint', text: t('today.noActions') }));
+        fact.appendChild(U.button(t('today.returnedAdd'), function () { env.go('actions', { goalId: d.goal.id }); }, { secondary: true }));
+      } else if (!d.actions.length && !left) fact.appendChild(h('p', { class: 'hint', text: t('today.noActions') }));
       d.actions.forEach(function (a) { fact.appendChild(actionRow(a)); });
       var sum = ctrl.summary();
       if (!ro && d.actions.length) {
@@ -5009,11 +5330,12 @@ window.GT_CONFIG = {
       if (!ro && ui.show && !env.hasMainButton()) {
         fact.appendChild(U.button(t('today.save'), function () { ctrl.press(); }, { disabled: ui.loading }));
       }
-      box.appendChild(fact);
-      box.appendChild(progressBlock());
-      box.appendChild(summaryBlock());
+      panel.appendChild(fact);
+      panel.appendChild(progressBlock());
+      panel.appendChild(summaryBlock());
       var tb = tasksBlock();
-      if (tb) box.appendChild(tb);
+      if (tb) panel.appendChild(tb);
+      box.appendChild(panel);
       if (d.actions.some(function (a) { return a.normWarning; })) box.appendChild(h('p', { class: 'notice', text: t('today.normWarning') }));
       if (params.factMode && !highlightDone) { highlightDone = true; fact.scrollIntoView({ block: 'start' }); } else window.scrollTo(0, scroll);
     }
@@ -5041,7 +5363,7 @@ window.GT_CONFIG = {
     var h = env.h;
     var t = env.t;
     var U = env.U;
-    var ro = env.readOnly();
+    var ro = env.readOnly() || env.left();
     var box = h('div');
     var list = h('div');
     var me = env.myMember();
@@ -5065,9 +5387,9 @@ window.GT_CONFIG = {
         env.call('task.setDone', { taskId: tk.id, done: c.checked }).then(function (r) { if (!r.ok) env.fail(r); load(); });
       });
       var canArchive = !ro && (env.isOwner() || mine);
-      return h('div', { class: 'row between task' + (overdue ? ' overdue' : '') },
-        h('label', { class: 'check' }, c, h('span', null,
-          tk.title, h('span', { class: 'hint block', text: [env.F.dateFull(tk.date), names(tk.assigneeMemberIds), overdue ? t('today.overdue') : ''].filter(Boolean).join(' · ') }))),
+      return h('div', { class: 'task' + (tk.status === 'done' ? ' done' : '') + (overdue ? ' late' : '') },
+        h('label', { class: 'tcell' }, c, h('div', null,
+          h('span', { class: 't', text: tk.title }), h('span', { class: 'sub', text: [env.F.dateFull(tk.date), names(tk.assigneeMemberIds), overdue ? t('today.overdue') : ''].filter(Boolean).join(' · ') }))),
         canArchive ? U.button(t('tasks.archive'), function () {
           env.call('task.archive', { taskId: tk.id }).then(function (r) { if (!r.ok) env.fail(r); load(); });
         }, { secondary: true }) : null);
@@ -5113,7 +5435,7 @@ window.GT_CONFIG = {
     box.appendChild(h('h2', { text: t('tasks.title') }));
     box.appendChild(list);
     if (!ro) {
-      box.appendChild(h('section', { class: 'card' }, h('h3', { text: t('tasks.new') }),
+      box.appendChild(h('section', { class: 'sec-form' }, h('h3', { class: 'sec', text: t('tasks.new') }),
         U.field(t('tasks.fTitle'), title), U.field(t('tasks.fDate'), date), U.field(t('tasks.fWho'), who), err, add));
     }
     box.appendChild(h('p', { class: 'hint', text: t('tasks.limitHint') }));
@@ -5183,33 +5505,36 @@ window.GT_CONFIG = {
       var g = d.goal;
       var p = d.progress;
       box.appendChild(h('h2', { text: t('review.dashboard') }));
-      box.appendChild(h('section', { class: 'card' },
-        h('p', { class: 'big', text: t('review.progressLine', { cur: F.num(p.currentValue), target: F.num(p.targetValue), unit: g.unit }) }),
-        h('p', { text: t('review.progressPct', { p: p.percent, rem: F.num(Math.max(0, p.remaining)) }) }),
-        h('p', { class: 'hint', text: t('review.period', { period: F.period(g.startDate, g.endDate) }) })));
+      // v8: один контейнер, блоки через линию. Все подписи — из полей dashboard.get (progress.percent/remaining), без пересчёта в приложении
+      var panel = h('div', { class: 'panel' });
+      panel.appendChild(h('section', { class: 'blk top' },
+        h('div', { class: 'num hero', text: F.num(p.currentValue) }),
+        h('div', { class: 'hero-of', text: t('review.ofTarget', { target: F.num(p.targetValue), unit: g.unit, p: p.percent }) }),
+        h('div', { class: 'bar' }, h('i', { style: 'width:' + Math.max(0, Math.min(100, p.percent)) + '%' })),
+        h('div', { class: 'split' }, h('span', { text: t('review.remaining', { rem: F.num(Math.max(0, p.remaining)), unit: g.unit }) }), h('span', { text: F.period(g.startDate, g.endDate) }))));
 
       if (d.outcome.state === 'running') {
         var f = d.forecast;
         var txt = f.date === null ? t('review.forecastNone') : f.onTrack ? t('review.forecastOn', { date: F.dateFull(f.date) }) : t('review.forecastLate', { date: F.dateFull(f.date), end: F.dateFull(g.endDate) });
-        box.appendChild(h('section', { class: 'card' }, h('h3', { text: t('review.forecast') }), h('p', { text: txt }),
+        panel.appendChild(h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('review.forecast') }), h('p', { text: txt }),
           f.avgPace7d === null ? null : h('p', { class: 'hint', text: t('review.pace', { n: F.num(f.avgPace7d), unit: g.unit }) })));
       } else {
-        box.appendChild(h('section', { class: 'card' }, h('h3', { text: t('review.result') }),
+        panel.appendChild(h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('review.result') }),
           h('p', { text: outcomeText(env, d.outcome.state) + (d.outcome.finalValue != null ? ' · ' + t('review.final', { v: F.num(d.outcome.finalValue), unit: g.unit }) : '') })));
       }
 
-      box.appendChild(h('section', { class: 'card' }, h('h3', { text: t('review.planFact') }),
+      panel.appendChild(h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('review.planFact') }),
         d.planFact.map(function (m) {
           return h('p', { text: t('review.planFactRow', { name: memberName(env, m.memberId) || t('review.member'), done: m.doneCount, total: m.totalCount, p: m.percent }) });
         })));
 
-      if (d.normWarning.active) box.appendChild(notice(env, t('review.normWarning')));
+      if (d.normWarning.active) panel.appendChild(h('section', { class: 'blk' }, notice(env, t('review.normWarning'))));
 
       var seg = h('div', { class: 'seg' }, [7, 14, 30].map(function (n) {
-        return h('button', { type: 'button', class: n === period ? 'on' : 'secondary', text: t('review.daysN', { n: n }), onclick: function () { period = n; load(); } });
+        return h('button', { type: 'button', 'aria-pressed': n === period ? 'true' : 'false', text: t('review.daysN', { n: n }), onclick: function () { period = n; load(); } });
       }));
-      box.appendChild(h('section', { class: 'card' }, h('h3', { text: t('review.slice') }), seg,
-        d.slice.days.slice().reverse().map(function (day) {
+      panel.appendChild(h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('review.slice') }), seg,
+        h('div', { class: 'rows' }, d.slice.days.slice().reverse().map(function (day) {
           // Открытый день (open) — это сегодня, он ещё не закрыт: «не внесён» — не пропуск и не 0 %
           var parts = day.perMember.map(function (m) {
             var name = memberName(env, m.memberId) || t('review.member');
@@ -5217,11 +5542,12 @@ window.GT_CONFIG = {
             return name + ' ' + m.percent + ' %' + (m.missing ? ' (' + t('review.missing') + ')' : '');
           }).join(' · ');
           var emptyOpen = day.open && day.perMember.every(function (m) { return m.missing; });
-          var row = h('button', { type: 'button', class: 'secondary slice-row', onclick: function () { env.go('today', { date: day.date }); } },
-            h('strong', { text: day.open ? t('review.todayOpen', { date: F.dayShort(day.date) }) : F.dayShort(day.date) }),
-            emptyOpen ? null : h('span', { text: t('review.dayDelta', { d: F.delta(day.progressDelta), unit: g.unit }) }), h('span', { class: 'hint', text: parts }));
-          return row;
-        })));
+          return h('button', { type: 'button', class: 'row', onclick: function () { env.go('today', { date: day.date }); } },
+            h('span', { class: 'row-main' }, h('span', { text: day.open ? t('review.todayOpen', { date: F.dayShort(day.date) }) : F.dayShort(day.date) }),
+              emptyOpen ? null : h('span', { class: 'sub', text: parts })),
+            h('span', { class: 'v', text: emptyOpen ? t('review.openNotEntered') : t('review.dayDelta', { d: F.delta(day.progressDelta), unit: g.unit }) }));
+        }))));
+      box.appendChild(panel);
     }
 
     return load();
@@ -5244,12 +5570,13 @@ window.GT_CONFIG = {
       more.textContent = '';
       if (!data.items.length && !cursor) list.appendChild(h('p', { class: 'hint', text: t('review.historyEmpty') }));
       data.items.forEach(function (it) {
-        list.appendChild(h('button', { type: 'button', class: 'secondary history-row', onclick: function () { env.go('card', { goalId: it.goalId }); } },
-          h('strong', { text: it.title }),
-          h('span', { class: 'hint', text: F.period(it.startDate, it.endDate) }),
-          h('span', { text: t('review.histLine', { target: F.num(it.targetValue), unit: it.unit, final: F.num(it.finalValue), p: it.percent }) }),
-          h('span', { class: 'badge ' + (it.outcome === 'success' ? 'ok' : ''), text: outcomeText(env, it.outcome) }),
-          it.reflectionPreview ? h('span', { class: 'hint', text: it.reflectionPreview }) : null));
+        list.appendChild(h('button', { type: 'button', class: 'hrow', onclick: function () { env.go('card', { goalId: it.goalId }); } },
+          h('span', { class: 'hist-top' }, h('span', { class: 't', text: it.title }),
+            h('span', { class: it.outcome === 'success' ? 'res' : 'res muted', text: outcomeText(env, it.outcome) })),
+          h('span', { class: 'sub', text: F.period(it.startDate, it.endDate) }),
+          h('span', { class: 'hist-num' }, h('span', { class: 'num', text: F.num(it.finalValue) }),
+            h('span', { class: 'muted small', text: t('review.ofTarget', { target: F.num(it.targetValue), unit: it.unit, p: it.percent }) })),
+          it.reflectionPreview ? h('span', { class: 'quote', text: it.reflectionPreview }) : null));
       });
       if (data.nextCursor) more.appendChild(env.U.button(t('review.more'), function () { load(data.nextCursor); }, { secondary: true }));
     }
@@ -5290,7 +5617,7 @@ window.GT_CONFIG = {
   function resultSection(env, g, r) {
     var h = env.h;
     var t = env.t;
-    return h('section', { class: 'card' }, h('h3', { text: t('review.result') }),
+    return h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('review.result') }),
       h('p', { class: 'big', text: outcomeText(env, r.outcome) }),
       h('p', { text: t('review.final', { v: env.F.num(r.finalValue), unit: g.unit }) + ' · ' + r.percent + ' %' }),
       h('p', { text: t('review.planFactPct', { p: r.planFactPercent }) }),
@@ -5312,23 +5639,26 @@ window.GT_CONFIG = {
       var g = d.goal;
       box.appendChild(h('h2', { text: g.title }));
       box.appendChild(h('p', { class: 'hint', text: F.period(g.startDate, g.endDate) + ' · ' + t('review.target', { v: F.num(g.targetValue), unit: g.unit }) }));
+      // v8: один контейнер, блоки «итог» и «рефлексия» через линию
+      var panel = h('div', { class: 'panel' });
       if (d.result) {
-        box.appendChild(resultSection(env, g, d.result));
+        panel.appendChild(resultSection(env, g, d.result));
       } else {
-        box.appendChild(h('p', { class: 'notice', text: t('review.stillRunning') }));
+        panel.appendChild(h('section', { class: 'blk' }, h('p', { class: 'notice', text: t('review.stillRunning') })));
       }
       if (d.achievements) {
-        box.appendChild(h('p', { text: t('review.firstReached', { date: F.dateFull(d.achievements.firstReachedAt.slice(0, 10)), v: F.num(d.achievements.firstReachedValue), unit: g.unit, days: d.achievements.firstReachedDays }) }));
+        panel.appendChild(h('section', { class: 'blk' }, h('p', { text: t('review.firstReached', { date: F.dateFull(d.achievements.firstReachedAt.slice(0, 10)), v: F.num(d.achievements.firstReachedValue), unit: g.unit, days: d.achievements.firstReachedDays }) })));
       }
-      box.appendChild(h('section', { class: 'card' }, h('h3', { text: t('review.reflection') }),
+      panel.appendChild(h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('review.reflection') }),
         d.reflections.length ? d.reflections.map(function (rf) {
-          return h('div', { class: 'reflection' },
+          return h('div', { class: 'refl' },
             h('p', { class: 'hint', text: rf.authorName + ' · ' + F.dateFull(rf.updatedAt.slice(0, 10)) }),
             [['worked', 'reflection.worked'], ['mistakes', 'reflection.mistakes'], ['different', 'reflection.different']].map(function (k) {
               return rf[k[0]] ? h('p', null, h('strong', { text: t(k[1]) + ': ' }), rf[k[0]]) : null;
             }));
         }) : h('p', { class: 'hint', text: t('review.noReflection') }),
         ro ? null : env.U.button(t('review.editReflection'), function () { env.go('reflection', { goalId: g.id, fromCard: true }); }, { secondary: true })));
+      box.appendChild(panel);
       box.appendChild(env.U.button(t('review.toDashboard'), function () { env.go('dashboard', { goalId: g.id }); }, { secondary: true }));
       return box;
     }
@@ -5376,10 +5706,12 @@ window.GT_CONFIG = {
     var rd = env.read(env.readSpec.card(goalId)); // запись самой рефлексии берём из кэша карточки, если она там есть
     function build(res) {
       var form = reflectionFields(env, res.ok ? myReflection(env, res.data) : null);
-      box.appendChild(h('h2', { text: t('reflection.title') }));
-      if (res.ok) box.appendChild(h('p', { class: 'hint', text: res.data.goal.title }));
-      form.els.forEach(function (el) { box.appendChild(el); });
-      box.appendChild(err);
+      var blk = h('section', { class: 'blk' });
+      box.appendChild(h('div', { class: 'panel' }, blk));
+      blk.appendChild(h('h2', { text: t('reflection.title') }));
+      if (res.ok) blk.appendChild(h('p', { class: 'sub', text: res.data.goal.title }));
+      form.els.forEach(function (el) { blk.appendChild(el); });
+      blk.appendChild(err);
       var save = env.U.button(t('reflection.save'), function () {
         save.disabled = true;
         err.hidden = true;
@@ -5389,7 +5721,7 @@ window.GT_CONFIG = {
           err.textContent = env.S.errorText(r.error); err.hidden = false;
         });
       });
-      box.appendChild(h('div', { class: 'actions' }, save, env.U.button(t('common.cancel'), function () { env.back(); }, { secondary: true })));
+      blk.appendChild(h('div', { class: 'stack' }, save, env.U.button(t('common.cancel'), function () { env.back(); }, { secondary: true })));
       return box;
     }
     if (rd.cached) { var el = build({ ok: true, data: rd.cached.data }); rd.shown(); return el; }
@@ -5416,7 +5748,7 @@ window.GT_CONFIG = {
       var g = d.goal;
       var form = reflectionFields(env, myReflection(env, d));
       var state = 'open'; // рефлексия: open → saved | skipped
-      var reflectionBox = h('section', { class: 'card' });
+      var reflectionBox = h('section', { class: 'blk' });
       var err = h('p', { class: 'error', hidden: true });
 
       // Уходя с экрана, рефлексию закрываем в фоне: введённое сохраняем, пустое пропускаем (иначе сервер покажет её снова)
@@ -5435,7 +5767,7 @@ window.GT_CONFIG = {
       function drawReflection() {
         reflectionBox.textContent = '';
         if (state === 'skipped') { reflectionBox.hidden = true; return; }
-        reflectionBox.appendChild(h('h3', { text: t('reflection.title') }));
+        reflectionBox.appendChild(h('h3', { class: 'sec', text: t('reflection.title') }));
         if (state === 'saved') { reflectionBox.appendChild(h('p', { text: t('summary.saved') })); return; }
         form.els.forEach(function (el) { reflectionBox.appendChild(el); });
         reflectionBox.appendChild(err);
@@ -5449,7 +5781,7 @@ window.GT_CONFIG = {
           });
         });
         // «Пропустить»: экран закрывается сразу, запрос в фоне, ошибку сети не показываем
-        reflectionBox.appendChild(h('div', { class: 'actions' }, save, U.button(t('reflection.skip'), function () {
+        reflectionBox.appendChild(h('div', { class: 'stack' }, save, U.button(t('reflection.skip'), function () {
           state = 'skipped';
           env.dismissReflection(goalId || g.id);
           drawReflection();
@@ -5458,9 +5790,11 @@ window.GT_CONFIG = {
 
       box.appendChild(h('h2', { text: t('summary.title') }));
       box.appendChild(h('p', { class: 'hint', text: g.title + ' · ' + env.F.period(g.startDate, g.endDate) }));
-      if (d.result) box.appendChild(resultSection(env, g, d.result));
+      var panel = h('div', { class: 'panel' });
+      if (d.result) panel.appendChild(resultSection(env, g, d.result));
       drawReflection();
-      box.appendChild(reflectionBox);
+      panel.appendChild(reflectionBox);
+      box.appendChild(panel);
 
       // Новую цель создаёт владелец; если цель уже есть (рефлексия старой цели вернулась при перезапуске), кнопок «новая цель» нет
       var actions = h('div', { class: 'stack' });
@@ -5468,7 +5802,7 @@ window.GT_CONFIG = {
         actions.appendChild(U.button(t('summary.newGoal'), function () { leave(null); }));
         if (d.repeat) actions.appendChild(U.button(t('summary.repeat'), function () { leave(d.repeat); }, { secondary: true }));
       } else if (!env.isOwner()) {
-        actions.appendChild(h('p', { class: 'hint', text: t('noGoal.ownerOnly') }));
+        actions.appendChild(h('p', { class: 'sub', text: t('noGoal.ownerOnly') }));
       }
       actions.appendChild(U.button(t('common.close'), function () { leave(); }, { secondary: true }));
       box.appendChild(actions);
@@ -5497,7 +5831,7 @@ window.GT_CONFIG = {
     function draw(data) {
       box.textContent = '';
       var g = data.goal;
-      var preview = h('div', { class: 'card', hidden: true });
+      var preview = h('section', { class: 'blk', hidden: true });
       var err = h('p', { class: 'error', hidden: true });
       var target = U.numberInput(g.targetValue, check, { negative: true, aria: t('raise.newTarget') });
       var end = h('input', { type: 'date', value: g.endDate, min: env.D.addDays(env.todayStr(), 1), 'aria-label': t('raise.newEnd') });
@@ -5520,13 +5854,13 @@ window.GT_CONFIG = {
           preview.textContent = '';
           preview.hidden = false;
           if (r.data.factor === null) { // впереди нет дней: нормы не посчитать, предлагаем продлить дату, применить нельзя
-            preview.appendChild(h('p', { class: 'notice', text: t('raise.noDays') }));
+            preview.appendChild(h('p', { class: 'sub field-error', text: t('raise.noDays') }));
             current = null;
             return;
           }
           current = p;
-          preview.appendChild(h('p', { class: 'big', text: r.data.factor <= 1 ? t('raise.same') : t('raise.grow', { k: F.num(r.data.factor, 1) }) }));
-          if (r.data.suggestExtend) preview.appendChild(h('p', { class: 'notice', text: t('raise.extend') }));
+          preview.appendChild(h('p', null, h('strong', { text: r.data.factor <= 1 ? t('raise.same') : t('raise.grow', { k: F.num(r.data.factor, 1) }) })));
+          if (r.data.suggestExtend) preview.appendChild(h('p', { class: 'sub field-error', text: t('raise.extend') }));
           apply.disabled = false;
         });
       }
@@ -5541,14 +5875,17 @@ window.GT_CONFIG = {
         });
       }
 
+      var panel = h('div', { class: 'panel' });
       box.appendChild(h('h2', { text: t('raise.title') }));
-      box.appendChild(h('p', { text: t('raise.now', { v: F.num(g.targetValue), unit: g.unit, end: F.dateFull(g.endDate) }) }));
-      box.appendChild(U.field(t('raise.newTarget'), target, t('raise.hintTarget', { dir: t(g.direction === 'growth' ? 'raise.more' : 'raise.less') })));
-      box.appendChild(U.field(t('raise.newEnd'), end, t('raise.hintEnd')));
-      box.appendChild(preview);
-      box.appendChild(err);
-      box.appendChild(h('div', { class: 'actions' }, apply,
-        U.button(t('common.cancel'), function () { if (params.onCancel) params.onCancel(); else env.back(); }, { secondary: true })));
+      box.appendChild(panel);
+      panel.appendChild(h('section', { class: 'blk' },
+        h('p', { text: t('raise.now', { v: F.num(g.targetValue), unit: g.unit, end: F.dateFull(g.endDate) }) }),
+        U.field(t('raise.newTarget'), target, t('raise.hintTarget', { dir: t(g.direction === 'growth' ? 'raise.more' : 'raise.less') })),
+        U.field(t('raise.newEnd'), end, t('raise.hintEnd')),
+        err));
+      panel.appendChild(preview);
+      panel.appendChild(h('section', { class: 'blk' }, h('div', { class: 'stack' }, apply,
+        U.button(t('common.cancel'), function () { if (params.onCancel) params.onCancel(); else env.back(); }, { secondary: true }))));
     }
 
     // Сохранённые данные цели показываем сразу, свежие подменяют их тихо (но не поверх начатого ввода)
@@ -5574,26 +5911,40 @@ window.GT_CONFIG = {
     var U = env.U;
     var goal = env.boot().activeGoal;
     var box = h('div');
+    var keeping = false; // «Продолжить как есть» уже отправлено: повторное нажатие (кнопка или BackButton) второй запрос не шлёт
+
+    // «Продолжить как есть» = закрытие экрана без выбора (screens.md §3.8)
+    function keep() {
+      if (keeping) return;
+      keeping = true;
+      env.call('goal.dismissReached', { goalId: goal.id }).then(function (r) {
+        if (r.ok) env.reboot();
+        else { keeping = false; env.fail(r); }
+      });
+    }
 
     function main() {
       box.textContent = '';
-      box.appendChild(h('h2', { text: t('reached.title') }));
-      box.appendChild(h('p', { text: t('reached.text', { title: goal.title }) }));
-      box.appendChild(h('div', { class: 'stack' },
-        U.button(t('reached.finish'), function () {
-          U.confirmDialog(t('reached.confirm'), t('reached.finish')).then(function (ok) {
-            if (!ok) return;
-            env.completeGoal(goal.id).then(function (r) { if (!r.ok) env.fail(r); });
-          });
-        }),
-        U.button(t('reached.raise'), function () {
-          box.textContent = '';
-          Promise.resolve(screens.raiseBar(env, { goalId: goal.id, onCancel: main })).then(function (el) { box.appendChild(el); });
-        }, { secondary: true }),
-        U.button(t('reached.keep'), function () {
-          env.call('goal.dismissReached', { goalId: goal.id }).then(function (r) { if (r.ok) env.reboot(); else env.fail(r); });
-        }, { secondary: true })));
-      box.appendChild(h('p', { class: 'hint', text: t('reached.hint') }));
+      env.setBack(keep); // BackButton = «Продолжить как есть»; сбрасывается самим приложением при смене экрана
+      var panel = h('div', { class: 'panel' });
+      panel.appendChild(h('section', { class: 'blk' },
+        h('h2', { text: t('reached.title') }),
+        h('p', { text: t('reached.text', { title: goal.title }) }),
+        h('div', { class: 'stack' },
+          U.button(t('reached.finish'), function () {
+            U.confirmDialog(t('reached.confirm'), t('reached.finish')).then(function (ok) {
+              if (!ok) return;
+              env.completeGoal(goal.id).then(function (r) { if (!r.ok) env.fail(r); });
+            });
+          }),
+          U.button(t('reached.raise'), function () {
+            box.textContent = '';
+            env.setBack(main); // внутри «Поднять планку» BackButton = «Отмена»
+            Promise.resolve(screens.raiseBar(env, { goalId: goal.id, onCancel: main })).then(function (el) { box.appendChild(el); });
+          }, { secondary: true }),
+          U.button(t('reached.keep'), keep, { secondary: true })),
+        h('p', { class: 'sub', text: t('reached.hint') })));
+      box.appendChild(panel);
     }
     main();
     return box;
@@ -5626,19 +5977,39 @@ window.GT_CONFIG = {
     var seg = h('div', { class: 'seg', role: 'group', 'aria-label': env.t('settings.theme') });
     var PREFS = root.GT.theme.PREFS;
     PREFS.forEach(function (pref) {
-      var btn = h('button', { type: 'button', class: pref === current ? 'on' : 'secondary', text: env.t('theme.' + pref), 'aria-pressed': String(pref === current),
+      var btn = h('button', { type: 'button', text: env.t('theme.' + pref), 'aria-pressed': String(pref === current),
         onclick: function () {
           env.theme.set(pref);
           Array.prototype.forEach.call(seg.children, function (c, i) {
-            var on = PREFS[i] === pref;
-            c.className = on ? 'on' : 'secondary';
-            c.setAttribute('aria-pressed', String(on));
+            c.setAttribute('aria-pressed', String(PREFS[i] === pref));
           });
         } });
       seg.appendChild(btn);
     });
-    return h('section', { class: 'card' }, h('h3', { text: env.t('settings.theme') }), seg);
+    return h('section', { class: 'blk' }, h('h3', { class: 'sec', text: env.t('settings.theme') }), seg);
   }
+
+  // «Отозвать согласие» (контракт 10): подтверждение по роли, затем healthConsent.revoke и app.bootstrap.
+  // Тексты предупреждений — ЧЕРНОВИК, утвердит юрист (docs/STATUS.md п. 17).
+  screens.healthRevoke = function (env) {
+    var h = env.h;
+    var t = env.t;
+    var err = h('p', { class: 'error', hidden: true });
+    var btn = env.U.button(t('healthRevoke.button'), function () {
+      err.hidden = true;
+      env.U.confirmDialog(t(env.isOwner() ? 'healthRevoke.confirmOwner' : 'healthRevoke.confirmParticipant'), t('healthRevoke.confirmOk'), true).then(function (ok) {
+        if (!ok) return;
+        btn.disabled = true;
+        env.call('healthConsent.revoke', {}).then(function (r) {
+          if (r.ok) return env.reboot();
+          btn.disabled = false;
+          err.textContent = env.S.errorText(r.error);
+          err.hidden = false;
+        });
+      });
+    }, { danger: true });
+    return h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('healthRevoke.title') }), btn, err);
+  };
 
   // ---------- S-50 Настройки ----------
   screens.settings = function (env) {
@@ -5646,23 +6017,30 @@ window.GT_CONFIG = {
     var t = env.t;
     var b = env.boot();
     var box = h('div');
-    box.appendChild(h('h2', { text: t('settings.title') }));
+    var panel = h('div', { class: 'panel' });
+    var rows = h('div', { class: 'rows' });
+    box.appendChild(h('h3', { class: 'sec', text: t('settings.title') }));
     function item(label, name, params) {
-      return h('button', { type: 'button', class: 'secondary list-item', text: label, onclick: function () { env.go(name, params || {}); } });
+      return h('button', { type: 'button', class: 'row', onclick: function () { env.go(name, params || {}); } },
+        h('span', { class: 'row-main', text: label }), h('span', { class: 'v', text: '›' }));
     }
-    if (b.activeGoal) box.appendChild(item(t('settings.goal'), 'goalSettings', { goalId: b.activeGoal.id }));
-    if (b.activeGoal) box.appendChild(item(t('settings.actions'), 'actions', { goalId: b.activeGoal.id }));
-    box.appendChild(item(t('settings.messages'), 'messages'));
-    box.appendChild(item(t('settings.members'), 'members'));
-    if (env.isOwner()) box.appendChild(item(t('settings.cabinet'), 'cabinet'));
-    box.appendChild(themeSection(env));
+    if (b.activeGoal) rows.appendChild(item(t('settings.goal'), 'goalSettings', { goalId: b.activeGoal.id }));
+    if (b.activeGoal && !env.left()) rows.appendChild(item(t('settings.actions'), 'actions', { goalId: b.activeGoal.id }));
+    rows.appendChild(item(t('settings.messages'), 'messages'));
+    rows.appendChild(item(t('settings.members'), 'members'));
+    if (env.isOwner()) rows.appendChild(item(t('settings.cabinet'), 'cabinet'));
+    panel.appendChild(h('section', { class: 'blk' }, rows));
+    panel.appendChild(themeSection(env));
+    if (env.healthGiven() && !env.readOnly()) panel.appendChild(screens.healthRevoke(env));
     if (b.mode === 'whitelist') { // только в режиме беты
-      box.appendChild(h('section', { class: 'card' },
-        h('p', { class: 'hint', text: t('settings.betaVersion', { v: env.cfg.APP_VERSION || '0', env: b.env }) }),
-        env.U.button(t('settings.copyReport'), function () { copyReport(env); }, { secondary: true }),
-        env.U.button(t('settings.report'), function () { env.openTg(SUPPORT_URL); }, { secondary: true })));
+      panel.appendChild(h('section', { class: 'blk' },
+        h('p', { class: 'sub', text: t('settings.betaVersion', { v: env.cfg.APP_VERSION || '0', env: b.env }) }),
+        h('div', { class: 'stack' },
+          env.U.button(t('settings.copyReport'), function () { copyReport(env); }, { secondary: true }),
+          env.U.button(t('settings.report'), function () { env.openTg(SUPPORT_URL); }, { secondary: true }))));
     }
-    box.appendChild(diagnostics(env));
+    panel.appendChild(diagnostics(env));
+    box.appendChild(panel);
     return box;
   };
 
@@ -5746,10 +6124,11 @@ window.GT_CONFIG = {
       fill();
       copyText(area).then(function (ok) { msg.textContent = ok ? t('diag.copied') : t('diag.copyFail'); });
     });
-    var box = h('details', { class: 'card' }, h('summary', { text: t('diag.title') }), h('p', { class: 'hint', text: t('diag.hint') }), area,
+    var det = h('details', null, h('summary', { class: 'row' }, h('span', { class: 'row-main', text: t('diag.title') }), h('span', { class: 'v', text: '›' })),
+      h('p', { class: 'hint', text: t('diag.hint') }), area,
       h('div', { class: 'actions' }, copy, env.U.button(t('diag.refresh'), fill, { secondary: true })), msg);
-    box.addEventListener('toggle', function () { if (box.open) fill(); });
-    return box;
+    det.addEventListener('toggle', function () { if (det.open) fill(); });
+    return h('section', { class: 'blk' }, h('div', { class: 'rows' }, det));
   }
 
   // ---------- S-51 Цель ----------
@@ -5771,15 +6150,15 @@ window.GT_CONFIG = {
       [title, unit, end].forEach(function (el) { el.addEventListener('input', function () { dirty = true; }); el.addEventListener('change', function () { dirty = true; }); });
       var err = errorBox(env);
       var rev = g.rev;
+      var panel = h('div', { class: 'panel' });
       box.appendChild(h('h2', { text: t('settings.goal') }));
-      box.appendChild(U.field(t('wizard.fTitle'), title));
-      box.appendChild(U.field(t('wizard.fUnit'), unit));
-      box.appendChild(U.field(t('wizard.fEnd'), end, t('goalSettings.endHint')));
-      box.appendChild(h('section', { class: 'card' }, h('h3', { text: t('goalSettings.locked') }),
+      box.appendChild(panel);
+      panel.appendChild(h('section', { class: 'blk' }, U.field(t('wizard.fTitle'), title), U.field(t('wizard.fUnit'), unit),
+        U.field(t('wizard.fEnd'), end, t('goalSettings.endHint')), err));
+      panel.appendChild(h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('goalSettings.locked') }),
         h('p', { text: t('goalSettings.lockedRow', { start: F.num(g.startValue), target: F.num(g.targetValue), unit: g.unit,
           dir: t(g.direction === 'growth' ? 'wizard.growth' : 'wizard.decline'), mode: t(g.inputMode === 'current' ? 'wizard.modeCurrent' : 'wizard.modeDelta'), from: F.dateFull(g.startDate) }) }),
-        h('p', { class: 'hint', text: t('goalSettings.lockedHint') })));
-      box.appendChild(err);
+        h('p', { class: 'sub', text: t('goalSettings.lockedHint') })));
       if (owner && g.status === 'active') {
         var save = U.button(t('settings.save'), function () {
           save.disabled = true; err.hidden = true;
@@ -5796,14 +6175,13 @@ window.GT_CONFIG = {
             env.toast(t('settings.saved'));
           });
         });
-        box.appendChild(save);
-        box.appendChild(h('div', { class: 'stack' },
+        panel.appendChild(h('section', { class: 'blk' }, h('div', { class: 'stack' }, save,
           U.button(t('reached.raise'), function () { env.go('raiseBar', { goalId: g.id }); }, { secondary: true }),
           U.button(t('goalSettings.complete'), function () {
             U.confirmDialog(t('reached.confirm'), t('reached.finish'), true).then(function (ok) {
               if (ok) env.completeGoal(g.id).then(function (r) { if (!r.ok) env.fail(r); });
             });
-          }, { danger: true })));
+          }, { danger: true }))));
       }
     }
 
@@ -5828,7 +6206,7 @@ window.GT_CONFIG = {
     var h = env.h;
     var t = env.t;
     var U = env.U;
-    var ro = env.readOnly();
+    var ro = env.readOnly() || env.left();
     var me = env.myMember();
     var members = (env.boot().cabinet.members || []).filter(function (m) { return m.status === 'active'; });
     var other = members.filter(function (m) { return !me || m.id !== me.id; })[0] || null;
@@ -5843,16 +6221,19 @@ window.GT_CONFIG = {
       var active = acts.filter(function (a) { return a.status === 'active'; });
       var archived = acts.filter(function (a) { return a.status === 'archived'; });
       if (!acts.length) list.appendChild(h('p', { class: 'hint', text: t('actions.empty') }));
+      var panel = h('div', { class: 'panel' });
+      function small(b) { b.className = 'secondary sm'; return b; }
       active.concat(archived).forEach(function (a) {
-        list.appendChild(h('div', { class: 'card' + (a.status === 'archived' ? ' archived' : '') },
+        panel.appendChild(h('section', { class: 'blk' + (a.status === 'archived' ? ' muted' : '') },
           h('strong', { text: a.title }),
-          h('p', { class: 'hint', text: t('today.norm', { n: env.F.num(a.startNorm), unit: a.unit }) + (a.status === 'archived' ? ' · ' + t('actions.archived') : '') }),
+          h('p', { class: 'sub', text: t('today.norm', { n: env.F.num(a.startNorm), unit: a.unit }) + (a.status === 'archived' ? ' · ' + t('actions.archived') : '') }),
           ro || (whose !== (me && me.id) && !env.isOwner()) ? null : h('div', { class: 'actions' },
-            U.button(t('actions.edit'), function () { env.go('actionEdit', { goalId: params.goalId, action: a, ownerMemberId: whose }); }, { secondary: true }),
-            U.button(t(a.status === 'archived' ? 'actions.restore' : 'actions.archive'), function () {
+            small(U.button(t('actions.edit'), function () { env.go('actionEdit', { goalId: params.goalId, action: a, ownerMemberId: whose }); }, { secondary: true })),
+            small(U.button(t(a.status === 'archived' ? 'actions.restore' : 'actions.archive'), function () {
               env.call('action.archive', { actionId: a.id, archived: a.status !== 'archived' }).then(function (r) { if (r.ok) load(); else env.fail(r); });
-            }, { secondary: true }))));
+            }, { secondary: true })))));
       });
+      if (acts.length) list.appendChild(panel);
       var activeCount = data.actions.filter(function (a) { return a.status === 'active'; }).length;
       if (!ro) {
         list.appendChild(U.button(t('wizard.addAction'), function () { env.go('actionEdit', { goalId: params.goalId, ownerMemberId: whose }); }, { disabled: activeCount >= 15 }));
@@ -5879,7 +6260,8 @@ window.GT_CONFIG = {
     if (env.isOwner() && other) {
       var seg = h('div', { class: 'seg' });
       [[me, t('actions.mine')], [other, other.displayName]].forEach(function (p) {
-        var b = h('button', { type: 'button', class: p[0].id === whose ? 'on' : 'secondary', text: p[1], onclick: function () { whose = p[0].id; seg.querySelectorAll('button').forEach(function (x) { x.className = 'secondary'; }); b.className = 'on'; drawList(); } });
+        var b = h('button', { type: 'button', text: p[1], 'aria-pressed': String(p[0].id === whose),
+          onclick: function () { whose = p[0].id; seg.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', 'false'); }); b.setAttribute('aria-pressed', 'true'); drawList(); } });
         seg.appendChild(b);
       });
       box.appendChild(seg);
@@ -5916,16 +6298,16 @@ window.GT_CONFIG = {
         c.addEventListener('change', function () { v[key] = c.checked; });
         return h('label', { class: 'check' }, c, h('span', { text: label }));
       }
+      var panel = h('div', { class: 'panel' });
       box.appendChild(h('h2', { text: t(a ? 'actions.editTitle' : 'actions.newTitle') }));
-      box.appendChild(U.field(t('wizard.actionTitle'), title, null, errs.title));
-      box.appendChild(U.field(t('wizard.actionUnit'), unit, null, errs.unit));
-      box.appendChild(U.field(t('wizard.norm'), norm, a ? t('actions.normTomorrow') : t('actions.normHint'), errs.startNorm));
-      box.appendChild(U.field(t('actions.step'), step, t('actions.stepHint'), errs.step));
-      box.appendChild(U.field(t('wizard.ceiling'), ceil, t('wizard.ceilingHint'), errs.normCeiling));
-      box.appendChild(check('growsOnLag', t('wizard.growsOnLag')));
-      box.appendChild(check('inPlan', t('actions.inPlan')));
-      box.appendChild(check('countStreak', t('actions.countStreak')));
-      box.appendChild(err);
+      box.appendChild(panel);
+      panel.appendChild(h('section', { class: 'blk' },
+        U.field(t('wizard.actionTitle'), title, null, errs.title),
+        U.field(t('wizard.actionUnit'), unit, null, errs.unit),
+        U.field(t('wizard.norm'), norm, a ? t('actions.normTomorrow') : t('actions.normHint'), errs.startNorm),
+        U.field(t('actions.step'), step, t('actions.stepHint'), errs.step),
+        U.field(t('wizard.ceiling'), ceil, t('wizard.ceilingHint'), errs.normCeiling)));
+      panel.appendChild(h('section', { class: 'blk' }, check('growsOnLag', t('wizard.growsOnLag')), check('inPlan', t('actions.inPlan')), check('countStreak', t('actions.countStreak'))));
       var save = U.button(t('settings.save'), function () {
         save.disabled = true; err.hidden = true;
         var body = { title: v.title.trim(), unit: v.unit.trim(), startNorm: v.startNorm, step: v.step, normCeiling: v.normCeiling,
@@ -5940,7 +6322,7 @@ window.GT_CONFIG = {
           showErr(err, env.S.errorText(r.error));
         });
       });
-      box.appendChild(h('div', { class: 'actions' }, save, U.button(t('common.cancel'), function () { env.back(); }, { secondary: true })));
+      panel.appendChild(h('section', { class: 'blk' }, err, h('div', { class: 'stack' }, save, U.button(t('common.cancel'), function () { env.back(); }, { secondary: true }))));
     }
     draw();
     return box;
@@ -5954,6 +6336,7 @@ window.GT_CONFIG = {
     var owner = env.isOwner() && !env.readOnly();
     return env.call('cabinet.get', {}).then(function (res) {
       var box = h('div');
+      var panel = h('div', { class: 'panel' });
       if (!res.ok) { box.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) })); return box; }
       var m = res.data.cabinet.messages;
       var rev = res.data.cabinet.rev;
@@ -5973,7 +6356,7 @@ window.GT_CONFIG = {
       function block(key, label, hint, deadline) {
         var cb = h('input', { type: 'checkbox', checked: !!m[key].enabled, disabled: !owner });
         var time = h('input', { type: 'time', value: m[key].time, disabled: !owner, 'aria-label': label });
-        var row = h('section', { class: 'card' }, h('label', { class: 'check' }, cb, h('strong', { text: label })),
+        var row = h('section', { class: 'blk' }, h('label', { class: 'check' }, cb, h('strong', { text: label })),
           deadline ? null : h('div', { class: 'field' }, time),
           hint ? h('p', { class: 'hint', text: hint }) : null);
         cb.addEventListener('change', function () { var p = {}; p[key] = { enabled: cb.checked }; send(p, function () { cb.checked = !cb.checked; }); });
@@ -5986,19 +6369,20 @@ window.GT_CONFIG = {
         return row;
       }
 
-      box.appendChild(block('morning', t('messages.morning'), t('messages.morningHint')));
-      box.appendChild(block('evening', t('messages.evening'), t('messages.eveningHint')));
-      box.appendChild(block('daySummary', t('messages.summary'), t('messages.summaryHint'), true));
-      box.appendChild(h('p', { class: 'hint', text: t('messages.weeklyLater') }));
-      box.appendChild(err);
+      box.appendChild(panel);
+      panel.appendChild(block('morning', t('messages.morning'), t('messages.morningHint')));
+      panel.appendChild(block('evening', t('messages.evening'), t('messages.eveningHint')));
+      panel.appendChild(block('daySummary', t('messages.summary'), t('messages.summaryHint'), true));
 
       if (env.boot().notifyStatus !== 'ok') {
-        box.appendChild(h('section', { class: 'card' }, h('h3', { text: t('wizard.notifyTitle') }), h('p', { text: t('wizard.notifyText') }),
+        panel.appendChild(h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('wizard.notifyTitle') }), h('p', { text: t('wizard.notifyText') }),
           U.button(t('messages.allow'), function () {
             var report = function (granted) { env.call('notify.reportWriteAccess', { granted: granted }).then(function (r) { if (r.ok) { env.boot().notifyStatus = r.data.notifyStatus; env.back(); } }); };
             if (env.tg && env.tg.requestWriteAccess) env.tg.requestWriteAccess(function (g) { report(!!g); }); else report(true);
           })));
       }
+      box.appendChild(h('p', { class: 'hint', text: t('messages.weeklyLater') }));
+      box.appendChild(err);
       return box;
     });
   };
@@ -6021,21 +6405,23 @@ window.GT_CONFIG = {
         if (!res.ok) { body.appendChild(h('p', { class: 'error', text: env.S.errorText(res.error) })); return; }
         var members = res.data.members;
         var invite = res.data.invite;
+        var panel = h('div', { class: 'panel' });
+        body.appendChild(panel);
         members.forEach(function (m) {
-          body.appendChild(h('div', { class: 'card' },
+          panel.appendChild(h('section', { class: 'blk' },
             h('strong', { text: m.displayName }),
-            h('p', { class: 'hint', text: t(m.role === 'owner' ? 'members.owner' : 'members.participant') + (m.status !== 'active' ? ' · ' + t('members.readonly') : '') }),
+            h('p', { class: 'sub', text: t(m.role === 'owner' ? 'members.owner' : 'members.participant') + (m.status !== 'active' ? ' · ' + t('members.readonly') : '') }),
             owner && m.role !== 'owner' && m.status === 'active' ? U.button(t('members.revoke'), function () {
               U.confirmDialog(t('members.revokeConfirm', { name: m.displayName }), t('members.revoke'), true).then(function (ok) {
                 if (ok) env.call('member.revoke', { memberId: m.id }).then(function (r) { if (r.ok) load(); else env.fail(r); });
               });
-            }, { secondary: true }) : null));
+            }, { danger: true }) : null));
         });
         var active = members.filter(function (m) { return m.status === 'active'; }).length;
         if (owner) {
-          if (active >= 2) body.appendChild(h('p', { class: 'hint', text: t('members.full') }));
+          if (active >= 2) panel.appendChild(h('section', { class: 'blk' }, h('p', { class: 'hint', text: t('members.full') })));
           else {
-            body.appendChild(h('div', { class: 'actions' },
+            var inv = h('section', { class: 'blk' }, h('div', { class: 'stack' },
               U.button(t('members.invite'), function () {
                 env.call('invite.create', {}).then(function (r) {
                   if (!r.ok) return env.fail(r);
@@ -6047,23 +6433,24 @@ window.GT_CONFIG = {
                 shownLink = null;
                 env.call('invite.revoke', { inviteId: invite.id }).then(function (r) { if (r.ok) load(); else env.fail(r); });
               }, { secondary: true }) : null));
+            panel.appendChild(inv);
             if (shownLink && invite) {
               var link = shownLink;
-              body.appendChild(h('div', null,
+              inv.appendChild(h('div', null,
                 h('p', { class: 'hint', text: t('members.inviteHint') }),
                 h('p', { class: 'telegram-id', text: link }),
-                h('div', { class: 'actions' },
+                h('div', { class: 'stack' },
                   U.button(t('members.copy'), function () { try { navigator.clipboard.writeText(link).then(function () { env.toast(t('noAccess.copied')); }, function () {}); } catch (e) { /* выделить вручную */ } }, { secondary: true }),
                   U.button(t('members.share'), function () { env.openTg('https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(t('members.shareText'))); }, { secondary: true }))));
             }
           }
         }
         if (env.boot().role === 'participant' || env.boot().role === 'readonly') {
-          body.appendChild(U.button(t('members.leave'), function () {
+          panel.appendChild(h('section', { class: 'blk' }, U.button(t('members.leave'), function () {
             U.confirmDialog(t('members.leaveConfirm'), t('members.leave'), true).then(function (ok) {
               if (ok) env.call('member.leave', {}).then(function (r) { if (r.ok) env.reboot(); else env.fail(r); });
             });
-          }, { danger: true }));
+          }, { danger: true })));
         }
       });
     }
@@ -6100,16 +6487,18 @@ window.GT_CONFIG = {
           c = r.data.cabinet; rev = c.rev; env.boot().cabinet.modules.oneOffTasks = c.modules.oneOffTasks; env.toast(t('settings.saved'));
         });
       });
+      var panel = h('div', { class: 'panel' });
       box.appendChild(h('h2', { text: t('settings.cabinet') }));
-      box.appendChild(U.field(t('wizard.fTz'), tz, t('wizard.hintTz')));
-      box.appendChild(h('label', { class: 'check' }, mod, h('span', { text: t('cabinet.moduleTasks') })));
-      box.appendChild(h('p', { class: 'hint', text: t('cabinet.moduleHint') }));
-      box.appendChild(err);
-      box.appendChild(h('p', { class: 'hint', text: t('cabinet.exportLater') }));
+      box.appendChild(panel);
+      panel.appendChild(h('section', { class: 'blk' }, U.field(t('wizard.fTz'), tz, t('wizard.hintTz')),
+        h('label', { class: 'check' }, mod, h('span', { text: t('cabinet.moduleTasks') })),
+        h('p', { class: 'hint', text: t('cabinet.moduleHint') }),
+        err,
+        h('p', { class: 'hint', text: t('cabinet.exportLater') })));
       if (owner) {
         // что будет после удаления, зависит от режима доступа (в бете — новый пустой кабинет, в боевом режиме — доступ не восстанавливается)
         var deleteText = t(env.boot().mode === 'codes' ? 'cabinet.deleteTextCodes' : 'cabinet.deleteTextBeta');
-        box.appendChild(h('section', { class: 'card' }, h('h3', { text: t('cabinet.deleteTitle') }), h('p', { text: deleteText }),
+        panel.appendChild(h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('cabinet.deleteTitle') }), h('p', { text: deleteText }),
           U.button(t('cabinet.delete'), function () {
             U.wordDialog(deleteText + ' ' + t('cabinet.deletePrompt', { word: t('cabinet.word') }), t('cabinet.word'), t('cabinet.delete')).then(function (word) {
               if (word === null) return;
@@ -6142,10 +6531,13 @@ window.GT_CONFIG = {
 
   GT.diag = GT.diagLogic.createDiag(); // журнал запросов для блока «Диагностика»
   var tg = null;          // Telegram.WebApp (real) или null
+  var mainButton = null;  // GT.mainButton поверх tg.MainButton (main-button.js), создаётся после определения tg
   var flow = null;
   var desc = null;        // последний descriptor потока запуска
   var nav = { tab: 'today', stack: [], first: true }; // stack — подэкраны внутри вкладки
   var helpOpen = false;
+  var consentPending = null; // Promise<boolean> открытого S-06 (поверх экрана, а не вместо него: введённое не теряется)
+  var consentDecline = null;
   var viewToken = 0;
   var shell = null;
   var staleState = null;  // null | 'loading' (показан кэш, bootstrap идёт) | 'failed' (кэш показан, связи нет)
@@ -6208,7 +6600,7 @@ window.GT_CONFIG = {
       dataCache.beforeWrite(method, params);
       return flow.call(method, params, o).then(function (res) {
         dataCache.afterWrite(method, params, res);
-        if (res.ok && (method === 'goal.complete' || method === 'goal.create')) forgetGoal(); // цель сменилась: черновики прежней цели не нужны
+        if (res.ok && (method === 'goal.complete' || method === 'goal.create' || method === 'healthConsent.revoke' || method === 'cabinet.delete')) forgetGoal(); // цель сменилась или кабинета нет: черновики и «Сегодня» прежней цели не нужны
         if (res.ok && method === 'reflection.save' && params && params.goalId) env.prefetch(tabSpec.card(params.goalId)); // карточка обновится в фоне, пока человек возвращается
         return res;
       });
@@ -6225,7 +6617,9 @@ window.GT_CONFIG = {
       return presetsPromise;
     },
     staleState: function () { return staleState; },
-    hasMainButton: function () { return !!(tg && tg.MainButton); },
+    hasMainButton: function () { return !!mainButton && mainButton.available(); },
+    // «Готово» мастера видна на шаге M-2 экрана-мастера, без справки и S-06 (chrome.wizardDoneVisible)
+    wizardVisible: function () { return GT.chrome.wizardDoneVisible(desc, nav, helpOpen, !!consentPending, 2); },
     // Свой шаг «назад» внутри экрана (шаг мастера): fn — обработчик, false — BackButton скрыт, без аргумента — по умолчанию (подэкран → назад)
     setBack: function (fn) { screenBack = fn === undefined || fn === null ? undefined : fn; syncBack(); },
     retryBoot: function () { staleState = 'loading'; if (todayCtrl) todayCtrl.setStale(true); flow.retry(); },
@@ -6238,6 +6632,30 @@ window.GT_CONFIG = {
     },
     isOwner: function () { return boot().role === 'owner'; },
     readOnly: function () { return !!(desc && desc.readOnly); },
+    // 'left' | null — участие в цели группы здоровья (router.participation); вышедшему запись не предлагается и не отправляется
+    // me (контракт 10.2) в этой цели: свежий today.get.me, до его загрузки — app.bootstrap.activeGoal.me (goal.create — todayPlan.me); null — цели нет
+    me: function () {
+      var d = todayCtrl && todayCtrl.state.data;
+      var g = boot().activeGoal;
+      if (d && d.me && g && d.goal.id === g.id) return d.me;
+      return g && g.me || null;
+    },
+    part: function () { return GT.router.partOf(env.me()); },
+    left: function () { return env.part() === 'left'; },
+    // баннер возврата: только в день me.returnedOn по серверному todayDate; shownDate — показываемый день
+    returnedToday: function (shownDate) { return GT.router.returnedToday(env.me(), boot().todayDate, shownDate); },
+    // Согласие на здоровье: при активной цели — me.healthConsentGiven, без цели — app.bootstrap.healthConsent.given
+    healthGiven: function () {
+      var g = boot().activeGoal;
+      if (g && g.me) return !!g.me.healthConsentGiven; // flow.js обновляет его вместе с healthConsent после accept
+      var hc = boot().healthConsent;
+      return !!hc && !!hc.given;
+    },
+    // «Дайте согласие, чтобы участвовать»: S-06 → healthConsent.accept → app.bootstrap (цель снова с его планом)
+    joinHealth: function () {
+      var hc = boot().healthConsent || {};
+      return askHealthConsent({ version: hc.version, outdated: false, accept: flow.acceptHealth }).then(function (ok) { if (ok) return env.reboot(); });
+    },
     period: function () { return desc && desc.period ? desc.period : null; }, // 'before' | 'after': сегодня вне периода активной цели
     todayStr: function () { var b = boot(); return GT.dates.todayIn(b.cabinet ? b.cabinet.timezone : 'Europe/Moscow', Date.now()); },
     go: function (name, params) { nav.stack.push({ name: name, params: params || {} }); showCurrent(); },
@@ -6291,44 +6709,66 @@ window.GT_CONFIG = {
   }
 
   // Кнопка Telegram «Сохранить» видна только при несохранённом; пока есть несохранённое, закрытие приложения просит подтверждение.
-  var lastButtons = '';
+  // MainButton ведёт обёртка GT.mainButton (владелец 'save'); здесь только желаемое состояние.
+  var lastConfirm;
   function syncTelegramButtons() {
+    if (mainButton && mainButton.owner() === 'wizard') mainButton.update('wizard', { visible: env.wizardVisible() }); // справка, S-06, тема, уход с экрана-мастера
     if (!tg || !todayCtrl) return;
     var u = todayCtrl.ui();
-    var show = GT.chrome.mainButtonVisible(desc, nav, helpOpen, u.show); // «Сохранить» только на экране «Сегодня»
-    var scheme = theme.resolved();
-    var sig = [show, u.loading, u.confirmClose, scheme].join();
-    if (sig === lastButtons) return;
-    lastButtons = sig;
+    var show = GT.chrome.mainButtonVisible(desc, nav, helpOpen, u.show, !!consentPending); // «Сохранить» только на экране «Сегодня»
+    if (show) mainButton.claim('save', { text: t('today.save'), onClick: function () { if (todayCtrl) todayCtrl.press(); }, loading: u.loading, visible: true });
+    else mainButton.release('save');
+    if (u.confirmClose === lastConfirm) return;
+    lastConfirm = u.confirmClose;
     try {
-      var mb = tg.MainButton;
-      if (mb) {
-        if (show) {
-          var c = GT.theme.TG_COLORS[scheme];
-          mb.setParams({ text: t('today.save'), color: c.btn, text_color: c.ink }); // цвет акцента темы
-          mb.setText(t('today.save'));
-          mb.show();
-          if (u.loading) mb.showProgress(false); else mb.hideProgress();
-        } else { mb.hideProgress(); mb.hide(); }
-      }
       if (u.confirmClose) tg.enableClosingConfirmation(); else tg.disableClosingConfirmation();
-    } catch (e) { /* старый клиент Telegram без этих методов: остаётся кнопка на странице */ }
+    } catch (e) { /* старый клиент Telegram без этих методов */ }
   }
 
   // ---------- «Назад»: BackButton Telegram, вне Telegram — кнопка «←» в шапке ----------
   var screenBack;         // выбор экрана: undefined (по умолчанию) | false (скрыть) | fn (свой шаг назад); сбрасывается при смене экрана
   var backEl = null;      // кнопка «←» в шапке (когда BackButton Telegram недоступен)
   function goBack() {
-    if (!GT.chrome.backVisible(desc, nav, helpOpen, screenBack)) return;
+    if (!GT.chrome.backVisible(desc, nav, helpOpen, screenBack, !!consentPending)) return;
+    if (consentPending) return consentDecline(); // BackButton на S-06 = «Отказаться»
     if (helpOpen) { helpOpen = false; renderChrome(); showCurrent(); return; }
     if (typeof screenBack === 'function') return screenBack();
     env.back();
   }
   function syncBack() {
-    var show = GT.chrome.backVisible(desc, nav, helpOpen, screenBack);
+    var show = GT.chrome.backVisible(desc, nav, helpOpen, screenBack, !!consentPending);
     if (backEl) backEl.hidden = !show;
     if (!tg || !tg.BackButton) return;
     try { if (show) tg.BackButton.show(); else tg.BackButton.hide(); } catch (e) { /* старый клиент Telegram: остаётся «←» в шапке */ }
+  }
+
+  // ---------- S-06: согласие на сведения о здоровье поверх экрана (flow.js healthConsentRetry) ----------
+  // Меню, «Сохранить» и BackButton пересчитываются по правилам chrome.js; закрытие возвращает на тот же экран без перерисовки.
+  function syncConsentChrome() {
+    var navEl = root.querySelector('nav.tabs');
+    if (navEl) navEl.hidden = !GT.chrome.menuVisible(desc, nav, helpOpen, !!consentPending);
+    syncBack();
+    syncTelegramButtons();
+  }
+  function askHealthConsent(info) {
+    if (consentPending) return consentPending;
+    var overlay = h('div', { id: 'health-overlay' });
+    consentPending = new Promise(function (resolve) {
+      function close(ok) {
+        overlay.remove();
+        consentPending = null;
+        consentDecline = null;
+        syncConsentChrome();
+        resolve(ok);
+      }
+      consentDecline = function () { close(false); };
+      overlay.appendChild(GT.screens.healthConsent(env, { version: info.version, outdated: info.outdated, accept: info.accept,
+        onAccept: function () { close(true); }, onDecline: consentDecline }));
+      document.body.appendChild(overlay);
+      overlay.scrollTop = 0;
+    });
+    syncConsentChrome();
+    return consentPending;
   }
 
   // Экранная клавиатура: окно ниже самой большой высоты и в фокусе поле ввода → меню скрыто (body.kbd)
@@ -6495,7 +6935,7 @@ window.GT_CONFIG = {
         return;
       }
       staleState = null;
-      if (d.screen === 'today' && !!d.readOnly === !!desc.readOnly && !helpOpen) { // тот же экран: подменяем данные, не перерисовывая страницу
+      if (d.screen === 'today' && !!d.readOnly === !!desc.readOnly && (d.part || null) === (desc.part || null) && !helpOpen) { // тот же экран: подменяем данные, не перерисовывая страницу
         desc = d;
         lastBoot = d.boot;
         env.todayController().setStale(false);
@@ -6511,6 +6951,7 @@ window.GT_CONFIG = {
     if (d.boot) {
       if (d.screen === 'today' && d.boot.today) { lastBoot = d.boot; cacheStore.put(uid, { boot: d.boot, at: Date.now() }); } // кэш для следующего открытия
       else cacheStore.remove(uid);
+      if (d.boot.access === 'none' || (d.boot.consent && d.boot.consent.required)) dataCache.clear(); // доступа или согласия нет: чтения вкладок не оставляем
     }
     if (d.screen === 'today') {
       if (!nav.keepTab) { nav.tab = 'today'; }
@@ -6560,7 +7001,7 @@ window.GT_CONFIG = {
     });
     var tz;
     try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { tz = undefined; }
-    flow = GT.flow.createFlow({ api: client, expectedEnv: cfg.EXPECTED_ENV, startParam: startParam, tz: tz, onScreen: onDescriptor });
+    flow = GT.flow.createFlow({ api: client, expectedEnv: cfg.EXPECTED_ENV, startParam: startParam, tz: tz, onScreen: onDescriptor, askHealthConsent: askHealthConsent });
     uid = mode === 'mock' ? 'mock:' + (query.get('scenario') || 'new') + ':' + (query.get('as') || 'owner')
       : String(tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'anon');
     var cached = readCache(GT.router.parseStartParam(startParam));
@@ -6585,10 +7026,11 @@ window.GT_CONFIG = {
     tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
     if (tg) {
       try { tg.ready(); tg.expand(); } catch (e) { /* не критично */ }
-      try { tg.MainButton.onClick(function () { if (todayCtrl) todayCtrl.press(); }); } catch (e) { /* без кнопки Telegram «Сохранить» рисуется на странице */ }
       try { tg.BackButton.onClick(goBack); } catch (e) { /* без BackButton «←» рисуется в шапке */ }
     }
   }
+  mainButton = GT.mainButton.create(tg, function () { return GT.theme.TG_COLORS[theme.resolved()]; }); // цвет акцента темы; без tg — пустая обёртка
+  env.mainButton = mainButton;
   // Клавиатура: размер окна и фокус поля (focusin/focusout) → меню скрыто; поворот экрана сбрасывает базовую высоту
   window.addEventListener('resize', syncKeyboard);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', syncKeyboard);
