@@ -284,6 +284,7 @@ window.GT_CONFIG = {
     // Каталог ошибок api.md §5: ключ — код ошибки. Плюс локальный код network.
     errors: {
       network: 'Нет связи с сервером.',
+      timeout: 'Сервер отвечает долго. Попробуйте ещё раз.',
       superseded: 'Запрос заменён более новым.',
       unsaved: 'Сначала нужно сохранить введённое. Нажмите «Повторить» на плашке сверху.',
       bad_request: 'Что-то пошло не так. Попробуйте ещё раз.',
@@ -354,6 +355,7 @@ window.GT_CONFIG = {
   // Текст ошибки для пользователя по коду из каталога. error — {code, retryAfterSec?, details?}.
   function errorText(error) {
     var code = error && error.code;
+    if (code === 'network' && error.message === 'timeout') code = 'timeout'; // код тот же (контракт), текст другой: сервер просто долго отвечает
     var base = Object.prototype.hasOwnProperty.call(S.errors, code) ? S.errors[code] : S.errors.bad_request;
     var out = base;
     var sec = error && error.retryAfterSec;
@@ -1254,6 +1256,18 @@ window.GT_CONFIG = {
     return b;
   }
 
+  // goal.complete с запасным путём: goal_archived (цель уже завершена, например повтор после обрыва) = успех, итог берём из history.get.
+  // → Promise<{ok, data:{goal,result,repeat}, recovered?}>; ошибка history.get или цель без итога — исходная ошибка goal_archived.
+  function completeResult(call, goalId) {
+    return call('goal.complete', { goalId: goalId }).then(function (res) {
+      if (res.ok || !res.error || res.error.code !== 'goal_archived') return res;
+      return call('history.get', { goalId: goalId }).then(function (h) {
+        if (!h.ok || !h.data.result) return res;
+        return { ok: true, recovered: true, data: { goal: h.data.goal, result: h.data.result, repeat: h.data.repeat } };
+      });
+    });
+  }
+
   // Закрыли S-33: рефлексия больше не показывается
   function bootAfterSummary(boot) {
     return Object.assign({}, boot, { prompts: Object.assign({}, boot.prompts, { reflectionGoalId: null }) });
@@ -1274,7 +1288,7 @@ window.GT_CONFIG = {
   }
 
   var api = { participation: participation, partOf: partOf, returnedToday: returnedToday, parseStartParam: parseStartParam, checkEnv: checkEnv, decideScreen: decideScreen, screenForError: screenForError, saveButtonAllowed: saveButtonAllowed,
-    bootAfterCreate: bootAfterCreate, bootAfterComplete: bootAfterComplete, bootAfterSummary: bootAfterSummary };
+    bootAfterCreate: bootAfterCreate, bootAfterComplete: bootAfterComplete, completeResult: completeResult, bootAfterSummary: bootAfterSummary };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.GT = root.GT || {}; root.GT.router = api; }
 })(globalThis);
@@ -1301,6 +1315,15 @@ window.GT_CONFIG = {
   // Экранная клавиатура: окно стало ниже самой большой высоты (> 20 %) и в фокусе поле ввода.
   function keyboardOpen(baseHeight, height, editing) {
     return !!editing && baseHeight > 0 && height < baseHeight * 0.8;
+  }
+
+  // Тап по пустому месту экрана снимает фокус с поля ввода (на iPhone в Mini App иначе нечем закрыть клавиатуру).
+  // Не считается пустым: поля, кнопки, ссылки, подписи (тап по подписи ставит фокус в своё поле), summary, диалог.
+  var INTERACTIVE = 'input,textarea,select,button,a,label,summary,[role="button"],[contenteditable="true"],.dialog';
+  function tapDismissesKeyboard(target, active) {
+    if (!active || !/^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) return false;
+    if (!target || typeof target.closest !== 'function') return false;
+    return !target.closest(INTERACTIVE);
   }
 
   // BackButton: inner — выбор самого экрана: undefined — по умолчанию, false — скрыть, функция — свой шаг назад (шаг мастера).
@@ -1334,7 +1357,7 @@ window.GT_CONFIG = {
       ['line', { x1: '14', x2: '14', y1: '2', y2: '6' }], ['line', { x1: '8', x2: '8', y1: '10', y2: '14' }], ['line', { x1: '16', x2: '16', y1: '18', y2: '22' }]]
   };
 
-  var api = { NO_MENU_SUB: NO_MENU_SUB, TAB_ICONS: TAB_ICONS, menuVisible: menuVisible, keyboardOpen: keyboardOpen, backVisible: backVisible, mainButtonVisible: mainButtonVisible, wizardDoneVisible: wizardDoneVisible };
+  var api = { NO_MENU_SUB: NO_MENU_SUB, TAB_ICONS: TAB_ICONS, menuVisible: menuVisible, keyboardOpen: keyboardOpen, tapDismissesKeyboard: tapDismissesKeyboard, backVisible: backVisible, mainButtonVisible: mainButtonVisible, wizardDoneVisible: wizardDoneVisible };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.GT = root.GT || {}; root.GT.chrome = api; }
 })(globalThis);
@@ -4392,12 +4415,12 @@ window.GT_CONFIG = {
       disabled: !!o.disabled, 'aria-label': o.aria || null });
   }
 
-  // Подпись + поле + подсказка + текст ошибки.
+  // Подпись + поле + текст ошибки (сразу под полем) + подсказка.
   function field(label, input, hint, error) {
     return h('div', { class: 'field' },
       h('label', null, h('span', { class: 'label', text: label }), input),
-      hint ? h('p', { class: 'hint', text: hint }) : null,
-      error ? h('p', { class: 'field-error', text: error }) : null);
+      error ? h('p', { class: 'field-error', text: error }) : null,
+      hint ? h('p', { class: 'hint', text: hint }) : null);
   }
 
   // Число с запятой или точкой → number | null.
@@ -4972,7 +4995,12 @@ window.GT_CONFIG = {
 
     function scrollToError() {
       var first = document.querySelector('.field-error');
-      if (first) first.scrollIntoView({ block: 'center' });
+      if (!first) return;
+      // Поле с ошибкой: в .field (название цели и др.) или в строке действия (первое поле — название действия)
+      var host = first.closest('.field') || first.closest('.action-row');
+      var input = host && host.querySelector('input:not([type="checkbox"]), select');
+      if (input) input.focus({ preventScroll: true }); // на iOS вне жеста клавиатуру может не открыть, но фокус встанет
+      (input || first).scrollIntoView({ block: 'center' });
     }
 
     // Нажатие «Готово»: по валидации кнопка не блокируется — подсвечиваем ошибки и прокручиваем к первой
@@ -5927,16 +5955,18 @@ window.GT_CONFIG = {
       box.textContent = '';
       env.setBack(keep); // BackButton = «Продолжить как есть»; сбрасывается самим приложением при смене экрана
       var panel = h('div', { class: 'panel' });
+      var finishBtn = U.button(t('reached.finish'), function () {
+        U.confirmDialog(t('reached.confirm'), t('reached.finish')).then(function (ok) {
+          if (!ok || finishBtn.disabled) return;
+          finishBtn.disabled = true;
+          env.completeGoal(goal.id).then(function (r) { if (!r.ok) { finishBtn.disabled = false; env.fail(r); } });
+        });
+      });
       panel.appendChild(h('section', { class: 'blk' },
         h('h2', { text: t('reached.title') }),
         h('p', { text: t('reached.text', { title: goal.title }) }),
         h('div', { class: 'stack' },
-          U.button(t('reached.finish'), function () {
-            U.confirmDialog(t('reached.confirm'), t('reached.finish')).then(function (ok) {
-              if (!ok) return;
-              env.completeGoal(goal.id).then(function (r) { if (!r.ok) env.fail(r); });
-            });
-          }),
+          finishBtn,
           U.button(t('reached.raise'), function () {
             box.textContent = '';
             env.setBack(main); // внутри «Поднять планку» BackButton = «Отмена»
@@ -6175,13 +6205,16 @@ window.GT_CONFIG = {
             env.toast(t('settings.saved'));
           });
         });
+        var completeBtn = U.button(t('goalSettings.complete'), function () {
+          U.confirmDialog(t('reached.confirm'), t('reached.finish'), true).then(function (ok) {
+            if (!ok || completeBtn.disabled) return;
+            completeBtn.disabled = true;
+            env.completeGoal(g.id).then(function (r) { if (!r.ok) { completeBtn.disabled = false; env.fail(r); } });
+          });
+        }, { danger: true });
         panel.appendChild(h('section', { class: 'blk' }, h('div', { class: 'stack' }, save,
           U.button(t('reached.raise'), function () { env.go('raiseBar', { goalId: g.id }); }, { secondary: true }),
-          U.button(t('goalSettings.complete'), function () {
-            U.confirmDialog(t('reached.confirm'), t('reached.finish'), true).then(function (ok) {
-              if (ok) env.completeGoal(g.id).then(function (r) { if (!r.ok) env.fail(r); });
-            });
-          }, { danger: true }))));
+          completeBtn)));
       }
     }
 
@@ -6421,10 +6454,13 @@ window.GT_CONFIG = {
         if (owner) {
           if (active >= 2) panel.appendChild(h('section', { class: 'blk' }, h('p', { class: 'hint', text: t('members.full') })));
           else {
+            var inviteBtn;
             var inv = h('section', { class: 'blk' }, h('div', { class: 'stack' },
-              U.button(t('members.invite'), function () {
+              inviteBtn = U.button(t('members.invite'), function () {
+                if (inviteBtn.disabled) return;
+                inviteBtn.disabled = true;
                 env.call('invite.create', {}).then(function (r) {
-                  if (!r.ok) return env.fail(r);
+                  if (!r.ok) { inviteBtn.disabled = false; return env.fail(r); }
                   shownLink = r.data.link; // код показывается только в ответе на создание
                   load();
                 });
@@ -6810,14 +6846,23 @@ window.GT_CONFIG = {
   }
 
   // goal.complete → S-33 «Итог цели»: цели больше нет (hasArchivedGoals = true), итог и repeat берём из ответа
+  // Один запрос на цель: повторное нажатие, пока первое в пути, получает тот же ответ. goal_archived (цель уже завершена этим
+  // же пользователем, например повтор после обрыва) — не ошибка: итог берём из history.get и открываем S-33 как при успехе.
+  var completing = {};
   function completeGoal(goalId) {
-    return env.call('goal.complete', { goalId: goalId }).then(function (res) {
+    if (completing[goalId]) return completing[goalId];
+    var p = GT.router.completeResult(env.call, goalId).then(function (res) {
       if (!res.ok) return res;
+      if (res.recovered) forgetGoal(); // env.call чистит черновики только при res.ok своего метода
       var b = GT.router.bootAfterComplete(boot(), res.data.goal.id);
       nav.stack = [];
       onDescriptor({ screen: 'summary', boot: b, readOnly: false, reflectionGoalId: res.data.goal.id, summary: { goal: res.data.goal, result: res.data.result, repeat: res.data.repeat } });
       return res;
     });
+    completing[goalId] = p;
+    var clear = function () { delete completing[goalId]; };
+    p.then(clear, clear);
+    return p;
   }
 
   // Закрыть S-33: рефлексия больше не показывается; дальше «Нет активной цели» (S-41) или «Сегодня», если цель уже есть
@@ -7037,6 +7082,17 @@ window.GT_CONFIG = {
   window.addEventListener('orientationchange', function () { baseHeight = 0; syncKeyboard(); });
   document.addEventListener('focusin', syncKeyboard);
   document.addEventListener('focusout', function () { setTimeout(syncKeyboard, 0); });
+  // Тап (не прокрутка) по пустому месту закрывает клавиатуру: pointerdown/up, потому что click на пустом месте iOS не доставляет
+  var tapStart = null;
+  document.addEventListener('pointerdown', function (e) { tapStart = { x: e.clientX, y: e.clientY, target: e.target }; });
+  document.addEventListener('pointerup', function (e) {
+    var s = tapStart;
+    tapStart = null;
+    if (!s || Math.abs(e.clientX - s.x) > 10 || Math.abs(e.clientY - s.y) > 10) return;
+    var active = document.activeElement;
+    if (GT.chrome.tapDismissesKeyboard(e.target, active)) active.blur();
+  });
+  document.addEventListener('pointercancel', function () { tapStart = null; });
   theme.init();
   onDescriptor({ screen: 'loading' });
   startFlow();
