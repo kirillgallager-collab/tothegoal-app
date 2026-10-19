@@ -233,6 +233,7 @@ window.GT_CONFIG = {
       copy: 'Скопировать', copied: 'Скопировано', copyFail: 'Не удалось скопировать автоматически: выделите текст выше и скопируйте вручную.', refresh: 'Обновить'
     },
     goalSettings: {
+      titleRequired: 'Введите название цели',
       endHint: 'Дату окончания можно менять; нормы пересчитаются только для будущих дней.', locked: 'Менять нельзя',
       lockedRow: '{dir}: с {start} до {target} {unit}; ввод: {mode}; старт {from}.',
       lockedHint: 'Менять нельзя — завершите цель и создайте новую. Повысить цель можно через «Поднять планку».', complete: 'Завершить цель'
@@ -4423,6 +4424,17 @@ window.GT_CONFIG = {
       hint ? h('p', { class: 'hint', text: hint }) : null);
   }
 
+  // Первое поле с ошибкой в root: фокус в поле и прокрутка к нему. false — ошибок под полями нет.
+  function focusError(root) {
+    var first = root.querySelector('.field-error');
+    if (!first) return false;
+    var host = first.closest('.field');
+    var input = host && host.querySelector('input:not([type="checkbox"]), select');
+    if (input) input.focus({ preventScroll: true }); // на iOS вне жеста клавиатуру может не открыть, но фокус встанет
+    (input || first).scrollIntoView({ block: 'center' });
+    return true;
+  }
+
   // Число с запятой или точкой → number | null.
   function parseNum(str) {
     var s = String(str).replace(/\s/g, '').replace(',', '.');
@@ -4479,7 +4491,7 @@ window.GT_CONFIG = {
 
   function spinner() { return h('div', { class: 'spinner', role: 'status' }); }
 
-  root.GT.ui = { h: h, button: button, field: field, numberInput: numberInput, parseNum: parseNum, toast: toast,
+  root.GT.ui = { h: h, button: button, field: field, focusError: focusError, numberInput: numberInput, parseNum: parseNum, toast: toast,
     confirmDialog: confirmDialog, wordDialog: wordDialog, spinner: spinner };
 })(globalThis);
 
@@ -4836,6 +4848,7 @@ window.GT_CONFIG = {
     function errText(key) {
       if (!errors[key]) return null;
       if (key === 'startDate') return t('wizard.err.startRange'); // validation_failed field=startDate показывается у поля старта
+      if (key === 'title' && errors[key] === 'required') return t('goalSettings.titleRequired');
       return t(ERR[errors[key]] || 'wizard.err.required');
     }
     function refresh() { errors = tried ? W.validate(draft, env.todayStr(), env.boot().limits.maxActions) : {}; }
@@ -5989,10 +6002,14 @@ window.GT_CONFIG = {
   var screens = root.GT.screens = root.GT.screens || {};
   var SUPPORT_URL = 'https://t.me/say_5g'; // чат для «Сообщить о проблеме» (решение владельца, screens.md §3.9)
 
-  function fieldErrors(env, res, map) { // validation_failed → { поле: текст }
+  // validation_failed → { поле: текст } только для полей формы (known); пустой объект — показать общий текст.
+  // requiredKey — свой текст для code=required (например, «Введите название цели»).
+  function fieldErrors(env, res, known, requiredKey) {
     var out = {};
     ((res.error.details && res.error.details.fields) || []).forEach(function (f) {
-      out[f.field] = env.t(f.code === 'too_long' ? 'wizard.err.tooLong' : f.code === 'out_of_range' ? 'wizard.err.range' : 'wizard.err.required');
+      if (known.indexOf(f.field) < 0) return;
+      out[f.field] = env.t(f.code === 'too_long' ? 'wizard.err.tooLong' : f.code === 'out_of_range' ? 'wizard.err.range'
+        : (f.code === 'required' && requiredKey && requiredKey[f.field]) || 'wizard.err.required');
     });
     return out;
   }
@@ -6171,35 +6188,53 @@ window.GT_CONFIG = {
     var box = h('div');
     var dirty = false; // человек уже правит форму: свежие данные её не перезаписывают
     var shownJson = null;
-    function draw(data) {
+    var GOAL_FIELDS = ['title', 'unit', 'endDate'];
+    // keep — то, что человек уже ввёл (перерисовка с ошибками под полями); errs — { поле: текст }
+    function draw(data, keep, errs) {
       box.textContent = '';
+      errs = errs || {};
       var g = data.goal;
-      var title = h('input', { type: 'text', value: g.title, disabled: !owner, 'aria-label': t('wizard.fTitle') });
-      var unit = h('input', { type: 'text', value: g.unit, disabled: !owner, 'aria-label': t('wizard.fUnit') });
-      var end = h('input', { type: 'date', value: g.endDate, disabled: !owner, min: env.todayStr(), 'aria-label': t('wizard.fEnd') });
+      var title = h('input', { type: 'text', value: keep ? keep.title : g.title, disabled: !owner, 'aria-label': t('wizard.fTitle') });
+      var unit = h('input', { type: 'text', value: keep ? keep.unit : g.unit, disabled: !owner, 'aria-label': t('wizard.fUnit') });
+      var end = h('input', { type: 'date', value: keep ? keep.endDate : g.endDate, disabled: !owner, min: env.todayStr(), 'aria-label': t('wizard.fEnd') });
       [title, unit, end].forEach(function (el) { el.addEventListener('input', function () { dirty = true; }); el.addEventListener('change', function () { dirty = true; }); });
       var err = errorBox(env);
       var rev = g.rev;
       var panel = h('div', { class: 'panel' });
       box.appendChild(h('h2', { text: t('settings.goal') }));
       box.appendChild(panel);
-      panel.appendChild(h('section', { class: 'blk' }, U.field(t('wizard.fTitle'), title), U.field(t('wizard.fUnit'), unit),
-        U.field(t('wizard.fEnd'), end, t('goalSettings.endHint')), err));
+      panel.appendChild(h('section', { class: 'blk' }, U.field(t('wizard.fTitle'), title, null, errs.title), U.field(t('wizard.fUnit'), unit, null, errs.unit),
+        U.field(t('wizard.fEnd'), end, t('goalSettings.endHint'), errs.endDate), err));
       panel.appendChild(h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('goalSettings.locked') }),
         h('p', { text: t('goalSettings.lockedRow', { start: F.num(g.startValue), target: F.num(g.targetValue), unit: g.unit,
           dir: t(g.direction === 'growth' ? 'wizard.growth' : 'wizard.decline'), mode: t(g.inputMode === 'current' ? 'wizard.modeCurrent' : 'wizard.modeDelta'), from: F.dateFull(g.startDate) }) }),
         h('p', { class: 'sub', text: t('goalSettings.lockedHint') })));
       if (owner && g.status === 'active') {
         var save = U.button(t('settings.save'), function () {
-          save.disabled = true; err.hidden = true;
-          env.call('goal.update', { goalId: g.id, title: title.value.trim(), unit: unit.value.trim(), endDate: end.value, expectedRev: rev }).then(function (r) {
+          if (save.disabled) return;
+          err.hidden = true;
+          // Пустое название и слишком длинное не отправляем: ошибка под полем, фокус на нём
+          var tv = title.value.trim();
+          var local = !tv ? { title: t('goalSettings.titleRequired') } : tv.length > 80 ? { title: t('wizard.err.tooLong') } : null;
+          if (local) {
+            draw(data, { title: title.value, unit: unit.value, endDate: end.value }, local);
+            return U.focusError(box);
+          }
+          save.disabled = true;
+          env.call('goal.update', { goalId: g.id, title: tv, unit: unit.value.trim(), endDate: end.value, expectedRev: rev }).then(function (r) {
             save.disabled = false;
             if (!r.ok) {
               if (r.error.code === 'conflict') { env.toast(t('settings.conflict'), 'error'); return env.back(); }
-              var fe = r.error.code === 'validation_failed' ? Object.keys(fieldErrors(env, r)).join(', ') : '';
-              return showErr(err, env.S.errorText(r.error) + (fe ? ' (' + fe + ')' : ''));
+              var fe = r.error.code === 'validation_failed' ? fieldErrors(env, r, GOAL_FIELDS, { title: 'goalSettings.titleRequired' }) : null;
+              if (fe && Object.keys(fe).length) {
+                g.rev = rev;
+                draw(data, { title: title.value, unit: unit.value, endDate: end.value }, fe);
+                return U.focusError(box);
+              }
+              return showErr(err, env.S.errorText(r.error)); // ошибка без поля или с полем, которого нет в форме
             }
             rev = r.data.goal.rev;
+            g.rev = rev;
             dirty = false;
             env.boot().activeGoal.title = r.data.goal.title;
             env.toast(t('settings.saved'));
@@ -6351,8 +6386,11 @@ window.GT_CONFIG = {
         p.then(function (r) {
           if (r.ok) { env.toast(t('settings.saved')); return env.back(); }
           save.disabled = false;
-          if (r.error.code === 'validation_failed') { errs = fieldErrors(env, r); return draw(); }
-          showErr(err, env.S.errorText(r.error));
+          if (r.error.code === 'validation_failed') {
+            errs = fieldErrors(env, r, ['title', 'unit', 'startNorm', 'step', 'normCeiling']);
+            if (Object.keys(errs).length) { draw(); return U.focusError(box); }
+          }
+          showErr(err, env.S.errorText(r.error)); // ошибка без поля или с полем, которого нет в форме
         });
       });
       panel.appendChild(h('section', { class: 'blk' }, err, h('div', { class: 'stack' }, save, U.button(t('common.cancel'), function () { env.back(); }, { secondary: true }))));
