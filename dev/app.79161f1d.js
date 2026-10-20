@@ -96,7 +96,7 @@ window.GT_CONFIG = {
       fStart: 'Сейчас', fTarget: 'Цель', fPeriod: 'Срок', fEnd: 'Дата окончания', days: '{n} дней', fInputMode: 'Как вносить прогресс',
       modeCurrent: 'Текущее значение', modeDelta: 'Прирост за день', fTz: 'Часовой пояс',
       hintTitle: 'Например: «Вес 82 кг» или «100 000 подписчиков».', hintUnit: 'Например: кг, ₽, подписчики, страницы.',
-      hintStart: 'С чего начинаете. Менять после старта нельзя.', hintTarget: 'Куда хотите прийти. Поднять планку можно позже.',
+      hintStart: 'С чего начинаете. Менять после старта нельзя.', repeatStart: 'Итог прошлой цели: {n} {unit}', hintTarget: 'Куда хотите прийти. Поднять планку можно позже.',
       hintModeCurrent: 'Каждый день вносите, сколько сейчас (например, вес на весах).',
       hintModeDelta: 'Каждый день вносите, сколько добавилось за день (например, пробежали км).',
       hintActions: 'Ежедневные действия и их норма на день. Если отстаёте, норма растёт.', hintTz: 'От него зависит, когда заканчивается день.',
@@ -112,13 +112,15 @@ window.GT_CONFIG = {
       startHint: 'Цель начнётся {date}. Вносить факт можно с первого дня.',
       err: {
         startRange: 'Старт — от сегодня до 14 дней вперёд', required: 'Заполните это поле', tooLong: 'Слишком длинно', same: 'Цель должна отличаться от текущего значения',
-        direction: 'Цель не соответствует направлению', period: 'Дата окончания должна быть позже начала', limit: 'Слишком много действий',
+        directionGrowth: 'Цель должна быть больше, чем «Сейчас»', directionDecline: 'Цель должна быть меньше, чем «Сейчас»', period: 'Дата окончания должна быть позже начала', limit: 'Слишком много действий',
         range: 'Допустимо число не меньше 1' }
     },
 
     today: {
       todayLabel: 'Сегодня, {date}', prevDay: 'Предыдущий день', nextDay: 'Следующий день',
-      goalLine: '{cur} из {target} {unit} · осталось {rem} · {days} {daysWord}', day1: 'день', day2: 'дня', day5: 'дней',
+      goalLine: '{cur} из {target} {unit} · осталось {rem} · {days} {daysWord}',
+      goalLineOver: '{cur} из {target} {unit} · цель перевыполнена · {days} {daysWord}',
+      goalLineReached: '{cur} из {target} {unit} · цель достигнута · {days} {daysWord}', day1: 'день', day2: 'дня', day5: 'дней',
       streak: 'Лучшая серия: {n}', streakShort: 'серия {n}', leftText: 'Дайте согласие, чтобы участвовать', leftJoin: 'Дать согласие',
       returnedText: 'Вы снова в цели. Добавьте свои ежедневные действия.', returnedAdd: 'Добавить действия',
       factTitle: 'Факт дня', noActions: 'Ежедневных действий нет. Добавьте их в настройках.',
@@ -131,7 +133,7 @@ window.GT_CONFIG = {
       refreshing: 'Данные обновляются…', cachedOffline: 'Нет связи. Показаны сохранённые данные, сохранить пока нельзя.',
       errBannerRetry: 'Не удалось сохранить. {reason} Всё введённое осталось на экране.',
       errBannerHard: 'Не удалось сохранить: {reason} Это не исправить повтором, экран можно обновить.', refresh: 'Обновить экран',
-      progressNow: 'Сколько сейчас', progressAdded: 'Сколько добавилось', progressLess: 'Меньше', progressMore: 'Больше', overTarget: 'Цель перевыполнена',
+      progressNow: 'Сколько сейчас', progressAdded: 'Сколько добавилось', progressLess: 'Меньше', progressMore: 'Больше',
       summary: 'Выполнено {done} из {total} · {p} %', dayEntered: 'День внесён ✓', entered: 'Внесено {k} из {m} действий',
       other: '{name}: {done} из {total} · {state}', otherEntered: 'внёс', otherNot: 'ещё нет',
       tasks: 'Разовые задачи', noTasks: 'Задач на сегодня нет.', overdue: 'просрочено', addTask: '+ Задача',
@@ -230,7 +232,8 @@ window.GT_CONFIG = {
       failures: 'Неудачных вызовов: {n} из {total}', perMethod: 'По методам (тёплые, среднее в мс, в скобках число): {list}',
       marks: 'Старт (мс от открытия страницы): скрипты готовы {scripts}, первый экран {first} ({what})',
       reasons: { start: 'старт', action: 'действие', tab: 'вкладка', background: 'фон' },
-      last: 'Последние {n} запросов, новые сверху:', line: '{time} {method} [{reason}] · отправлен на {since} мс · ждали {ms} мс · {code} · requestId {id}{attempts}', ageSec: '{n} с', ageMin: '{n} мин', ageHour: '{n} ч', cachedMark: ' · из кэша (экран за {shown} мс, данным {age})', cacheHeader: 'Показано из кэша (экран за … мс от открытия вкладки):', cacheLine: '{time} {method} · из кэша · экран за {shown} мс · данным {age} · {refresh}', cacheRefresh: 'свежие запрошены', cacheNoRefresh: 'без запроса (данные не меняются)', attempts: ' · попытки (мс, итог): {list}', serverMs: ' (сервер {n} мс)',
+      last: 'Последние {n} запросов, новые сверху:', line: '{time} {method} [{reason}] · отправлен на {since} мс · ждали {ms} мс · {code} · requestId {id}{attempts}', ageSec: '{n} с', ageMin: '{n} мин', ageHour: '{n} ч', cachedMark: ' · из кэша (экран за {shown} мс, данным {age})', cacheHeader: 'Показано из кэша (экран за … мс от открытия вкладки):', cacheLine: '{time} {method} · из кэша · экран за {shown} мс · данным {age} · {refresh}', redrawHeader: 'Перерисовки экрана и события (источник · экран · прокрутка), новые сверху:', redrawLine: '{time} {source} · {screen} · прокрутка {y}',
+      cacheRefresh: 'свежие запрошены', cacheNoRefresh: 'без запроса (данные не меняются)', attempts: ' · попытки (мс, итог): {list}', serverMs: ' (сервер {n} мс)',
       copy: 'Скопировать', copied: 'Скопировано', copyFail: 'Не удалось скопировать автоматически: выделите текст выше и скопируйте вручную.', refresh: 'Обновить'
     },
     goalSettings: {
@@ -706,6 +709,7 @@ window.GT_CONFIG = {
   function createDiag(o) {
     var max = (o && o.max) || 10;
     var keep = (o && o.keep) || 300;
+    var redrawKeep = (o && o.max) || 30;
     var recent = []; // новые первыми
     var cold = null;
     var warm = []; // успешные вызовы после первого: { method, ms }
@@ -736,9 +740,13 @@ window.GT_CONFIG = {
     var shown = [];
     function cacheShown(r) { shown.unshift(r); if (shown.length > max) shown.pop(); }
 
-    return { record: record, mark: mark, marks: function () { return Object.assign({}, marks); }, list: function () { return recent.slice(); }, summary: summary,
+    // Перерисовки экрана и события, после которых страница могла прыгнуть: { at (Date.now), source, screen, scrollY }
+    var redraws = [];
+    function redraw(r) { redraws.unshift(r); if (redraws.length > redrawKeep) redraws.pop(); }
+
+    return { record: record, mark: mark, redraw: redraw, redrawList: function () { return redraws.slice(); }, marks: function () { return Object.assign({}, marks); }, list: function () { return recent.slice(); }, summary: summary,
       cacheShown: cacheShown, cacheList: function () { return shown.slice(); },
-      clear: function () { recent = []; warm = []; cold = null; failures = 0; total = 0; marks = {}; shown = []; } };
+      clear: function () { recent = []; warm = []; cold = null; failures = 0; total = 0; marks = {}; shown = []; redraws = []; } };
   }
 
   var api = { createDiag: createDiag, stats: stats };
@@ -1313,6 +1321,13 @@ window.GT_CONFIG = {
   function top(nav) { return nav.stack.length ? nav.stack[nav.stack.length - 1].name : null; }
 
   // Меню-пилюля: на рабочих экранах («Сегодня», вкладки и их подэкраны, S-41); справка и S-06 (consentOpen) — поверх, меню скрыто.
+  // Заголовок шапки: на S-33 — название той цели, к которой относится итог (не активной); пока оно неизвестно — имя приложения
+  function titleText(desc, appName) {
+    if (desc && desc.screen === 'summary') return desc.summary && desc.summary.goal ? desc.summary.goal.title : appName;
+    var b = desc && desc.boot;
+    return b && b.activeGoal ? b.activeGoal.title : appName;
+  }
+
   function menuVisible(desc, nav, helpOpen, consentOpen) {
     if (!desc || desc.screen !== 'today' || helpOpen || consentOpen) return false;
     return !NO_MENU_SUB[top(nav)];
@@ -1363,7 +1378,7 @@ window.GT_CONFIG = {
       ['line', { x1: '14', x2: '14', y1: '2', y2: '6' }], ['line', { x1: '8', x2: '8', y1: '10', y2: '14' }], ['line', { x1: '16', x2: '16', y1: '18', y2: '22' }]]
   };
 
-  var api = { NO_MENU_SUB: NO_MENU_SUB, TAB_ICONS: TAB_ICONS, menuVisible: menuVisible, keyboardOpen: keyboardOpen, tapDismissesKeyboard: tapDismissesKeyboard, backVisible: backVisible, mainButtonVisible: mainButtonVisible, wizardDoneVisible: wizardDoneVisible };
+  var api = { NO_MENU_SUB: NO_MENU_SUB, TAB_ICONS: TAB_ICONS, titleText: titleText, menuVisible: menuVisible, keyboardOpen: keyboardOpen, tapDismissesKeyboard: tapDismissesKeyboard, backVisible: backVisible, mainButtonVisible: mainButtonVisible, wizardDoneVisible: wizardDoneVisible };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.GT = root.GT || {}; root.GT.chrome = api; }
 })(globalThis);
@@ -3616,7 +3631,7 @@ window.GT_CONFIG = {
     var now = o.now || Date.now;
     var q = o.queue || createWriteQueue();
     var drafts = o.drafts || createStore(null, '');
-    var handlers = { onChange: o.onChange, onGoalReached: o.onGoalReached, onError: o.onError };
+    var handlers = { onChange: o.onChange, onGoalReached: o.onGoalReached, onError: o.onError, beforeSave: o.onBeforeSave };
     var s = {
       date: null, data: null, values: {}, markers: {}, // markers[actionId] = значение до «Норма выполнена»
       base: { values: {}, progress: null },            // что сейчас на сервере (последнее известное)
@@ -3638,12 +3653,23 @@ window.GT_CONFIG = {
     // (иначе «10, потом обратно» при запросе в пути оставило бы на сервере 10). Очищается ответом ok на запрос, отправленный после правки.
     var unsent = {};         // actionId → true
     var progressUnsent = false;
+    var rejectedKeys = {};   // 'progress' | actionId → в поле число выше предела: пока оно там, сохранять нельзя
     var touched = {};        // ключ черновика → правили в этой сессии (тогда это не «найденный при открытии»)
     var seen = {};           // ключ черновика → уже показывали
     var undoTimer = null;
     var savedTimer = null;
 
     function changed() { if (handlers.onChange) handlers.onChange(); }
+    function rejected() { return Object.keys(rejectedKeys).length > 0; }
+    // Поле закрылось или опустело, в нём снова принятое число: блокировка снимается (key без аргумента — со всех полей)
+    function clearRejected(key) {
+      var had = rejected();
+      if (key === undefined) rejectedKeys = {}; else delete rejectedKeys[key];
+      if (had && !rejected()) notify(); // меняется только кнопка Telegram; поле экран не перерисовывает
+    }
+    function setRejected(key) { rejectedKeys[key] = true; notify(); }
+    // Экран сбрасывает ожидающую паузу ввода в черновик перед любым сохранением
+    function flushInput() { if (handlers.beforeSave) handlers.beforeSave(); }
     function notify() { if (o.onStatus) o.onStatus(); }
     function actions() { return s.data ? s.data.actions : []; }
     function byId(id) { return actions().filter(function (a) { return a.id === id; })[0]; }
@@ -3706,6 +3732,7 @@ window.GT_CONFIG = {
       var d = JSON.parse(JSON.stringify(s.data));
       d.actions.forEach(function (a) { a.value = nv(s.base.values[a.id]); a.done = a.value !== null && a.value >= a.norm; });
       d.progress.value = s.base.progress;
+      d.goal.currentValue = goalTotal();
       if (s.day) {
         d.dayEntered = s.day.dayEntered;
         var mid = myMemberId();
@@ -3730,7 +3757,7 @@ window.GT_CONFIG = {
       s.undo = null;
       if (undoTimer) { o.cancel(undoTimer); undoTimer = null; }
       failed = null;
-      lastChange = {}; lastProgressChange = 0; changeSeq = 0; unsent = {}; progressUnsent = false;
+      lastChange = {}; lastProgressChange = 0; changeSeq = 0; unsent = {}; progressUnsent = false; rejectedKeys = {};
       var mid = myMemberId();
       var me = data.members.filter(function (m) { return m.id === mid; })[0] || data.members[0];
       s.day = me ? { doneCount: me.doneCount, totalCount: me.totalCount, percent: me.percent, percentRaw: me.percentRaw, dayEntered: data.dayEntered } : null;
@@ -3794,13 +3821,17 @@ window.GT_CONFIG = {
       return true;
     }
 
-    // Итог цели строго за целью (по direction: 'growth' | 'decline'), день сохранён и S-40 уже не ожидается (он показывается один раз):
-    // экран пишет «Цель перевыполнена» вместо молчания. Итог — из ответа day.save, иначе из today.get.
-    function overTarget(direction) {
-      if (!s.data || dirty() || queued > 0 || s.goalReached) return false;
-      var total = s.progressTotal != null ? s.progressTotal : s.data.goal.currentValue;
+    // Итог цели на сервере: из ответа day.save, иначе из today.get.
+    function goalTotal() { return s.progressTotal != null ? s.progressTotal : s.data.goal.currentValue; }
+
+    // Итог относительно цели (по direction: 'growth' | 'decline'): 'over' — строго за целью, 'reached' — ровно цель, иначе null.
+    // Сводка цели пишет «цель перевыполнена» / «цель достигнута» вместо «осталось K».
+    function goalStatus(direction) {
+      if (!s.data) return null;
+      var total = goalTotal();
       var target = s.data.goal.targetValue;
-      return direction === 'decline' ? total < target : total > target;
+      if (total === target) return 'reached';
+      return (direction === 'decline' ? total < target : total > target) ? 'over' : null;
     }
 
     function setStale(v) { s.stale = !!v; notify(); changed(); }
@@ -3941,8 +3972,10 @@ window.GT_CONFIG = {
     // Возвращает false, если число выше предела F.MAX_NUM (черновик не меняется, экран покажет «Слишком большое число»).
     function setExact(id, v) {
       s.taps += 2;
-      if (F.tooBig(v)) return false;
+      if (F.tooBig(v)) { setRejected(id); return false; }
+      delete rejectedKeys[id];
       if (v === null || (typeof v === 'number' && isFinite(v) && v >= 0)) setValueLocal(id, v);
+      else notify();
       return true;
     }
     // «Норма выполнена»; повторное нажатие возвращает прежнее значение.
@@ -3966,7 +3999,8 @@ window.GT_CONFIG = {
     function isDone(id) { var a = byId(id); var v = value(id); return !!a && v !== null && v >= a.norm; }
 
     function setProgress(v) {
-      if (F.tooBig(v)) return false;
+      if (F.tooBig(v)) { setRejected('progress'); return false; }
+      delete rejectedKeys.progress;
       s.taps++;
       clearUndo();
       lastProgressChange = bump();
@@ -3983,7 +4017,8 @@ window.GT_CONFIG = {
     // «Сохранить» (MainButton): один day.save со всем днём — значения всех действий (не внесённое уходит как null) и прогресс, если менялся.
     // Пока запрос идёт, повторное нажатие второй запрос не отправляет. Пока данные обновляются (stale), не сохраняем.
     function save() {
-      if (!s.data || s.stale) return Promise.resolve(null);
+      flushInput();
+      if (!s.data || s.stale || rejected()) return Promise.resolve(null);
       if (saveInFlight) return saveInFlight;
       if (!dirty()) return Promise.resolve(null);
       s.taps++;
@@ -4001,7 +4036,8 @@ window.GT_CONFIG = {
 
     // «Все нормы выполнены»: экран меняется сразу, «Отменить» виден сразу; несохранённое едет в том же запросе.
     function completeAll() {
-      if (s.stale) return Promise.resolve(null);
+      flushInput();
+      if (s.stale || rejected()) return Promise.resolve(null);
       s.taps++;
       s.restored = null;
       clearUndo();
@@ -4021,7 +4057,8 @@ window.GT_CONFIG = {
 
     // «Готово на сегодня»: у действий без значения сразу появляется 0; несохранённое едет в том же запросе.
     function finish() {
-      if (s.stale) return Promise.resolve(null);
+      flushInput();
+      if (s.stale || rejected()) return Promise.resolve(null);
       s.taps++;
       s.restored = null;
       clearUndo();
@@ -4057,6 +4094,7 @@ window.GT_CONFIG = {
       s.markers = {};
       s.restored = null;
       failed = null;
+      rejectedKeys = {};
       clearUndo();
       settle();
     }
@@ -4068,7 +4106,7 @@ window.GT_CONFIG = {
       s.data = null;
       s.values = {}; s.base = { values: {}, progress: null }; s.progress = null; s.markers = {}; s.day = null;
       s.restored = null; s.error = null; s.goalReached = false;
-      failed = null; touched = {}; seen = {};
+      failed = null; touched = {}; seen = {}; rejectedKeys = {};
       clearUndo();
       settle();
     }
@@ -4088,19 +4126,19 @@ window.GT_CONFIG = {
     // Что показывать на кнопке Telegram и нужно ли подтверждение закрытия.
     function ui() {
       var d = dirty();
-      return { show: !!s.data && !s.stale && (d || queued > 0 || !!failed), loading: queued > 0, dirty: d, confirmClose: d || queued > 0 || !!failed };
+      return { show: !!s.data && !s.stale && !rejected() && (d || queued > 0 || !!failed), loading: queued > 0, dirty: d, confirmClose: d || queued > 0 || !!failed };
     }
     // Нажатие кнопки «Сохранить»: после ошибки — повтор, иначе обычное сохранение
-    function press() { return failed ? retry() : save(); }
+    function press() { if (rejected()) return Promise.resolve(null); return failed ? retry() : save(); }
 
     // Экран «Сегодня» один на сессию: при смене вкладки он отвязывается, черновик остаётся, запросы доигрывают в фоне.
-    function bind(h) { handlers = { onChange: h.onChange, onGoalReached: h.onGoalReached, onError: h.onError }; }
+    function bind(h) { handlers = { onChange: h.onChange, onGoalReached: h.onGoalReached, onError: h.onError, beforeSave: h.beforeSave }; }
     function leave() { handlers = {}; }
 
     return { state: s, load: load, open: open, resume: resume, adoptBoot: adoptBoot, setStale: setStale, refresh: refresh, plus: plus, minus: minus, setExact: setExact,
       toggleNorm: toggleNorm, isNormMarked: isNormMarked, isDone: isDone, isRowDirty: isRowDirty, idle: function () { return q.idle(); },
       save: save, press: press, completeAll: completeAll, finish: finish, undo: undo, discard: discard, retry: retry, ui: ui,
-      forget: forget, overTarget: overTarget, value: value, summary: summary, entered: entered, allEntered: allEntered, anyBelowNorm: anyBelowNorm, setProgress: setProgress,
+      forget: forget, rejected: rejected, clearRejected: clearRejected, goalTotal: goalTotal, goalStatus: goalStatus, value: value, summary: summary, entered: entered, allEntered: allEntered, anyBelowNorm: anyBelowNorm, setProgress: setProgress,
       stepProgress: stepProgress, hasDraft: dirty, isRetryable: isRetryable, serverView: serverView, bind: bind, leave: leave };
   }
 
@@ -4207,6 +4245,15 @@ window.GT_CONFIG = {
     return e;
   }
 
+  // Цель равна старту или противоречит направлению: после «Повторить» мастер подсвечивает цель как требующую нового ввода
+  function needsNewTarget(draft) {
+    var okNum = function (x) { return typeof x === 'number' && isFinite(x); };
+    if (!okNum(draft.startValue) || !okNum(draft.targetValue)) return false;
+    return draft.startValue === draft.targetValue
+      || (draft.direction === 'growth' && draft.targetValue < draft.startValue)
+      || (draft.direction === 'decline' && draft.targetValue > draft.startValue);
+  }
+
   // Запрос goal.create. moduleTasks — включён ли модуль «Разовые задачи» (задачи иначе не отправляем).
   function toParams(draft, moduleTasks) {
     var p = {
@@ -4241,7 +4288,7 @@ window.GT_CONFIG = {
   }
 
   var api = { PERIODS: PERIODS, MAX_START_AHEAD: MAX_START_AHEAD, initDraft: initDraft, initFromRepeat: initFromRepeat, setDays: setDays, setStart: setStart, stepNorm: stepNorm, addAction: addAction,
-    validate: validate, toParams: toParams, serverFields: serverFields };
+    validate: validate, needsNewTarget: needsNewTarget, toParams: toParams, serverFields: serverFields };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.GT = root.GT || {}; root.GT.wizardLogic = api; }
 })(globalThis);
@@ -4865,7 +4912,7 @@ window.GT_CONFIG = {
   var screens = root.GT.screens = root.GT.screens || {};
   var W = root.GT.wizardLogic;
 
-  var ERR = { required: 'wizard.err.required', too_long: 'wizard.err.tooLong', same: 'wizard.err.same', direction: 'wizard.err.direction',
+  var ERR = { required: 'wizard.err.required', too_long: 'wizard.err.tooLong', same: 'wizard.err.same',
     period: 'wizard.err.period', limit: 'wizard.err.limit', range: 'wizard.err.range', tooBig: 'common.tooBig', out_of_range: 'wizard.err.range', bad_format: 'wizard.err.required' };
 
   // params.repeat — «Повторить эту цель» (S-33): мастер сразу на шаге 2, заполненный из repeat
@@ -4877,7 +4924,8 @@ window.GT_CONFIG = {
     var presets = null;
     var draft = null;
     var onStep1 = false;
-    var highlightTarget = false; // после «Повторить» цель подсвечена, пока равна старту и не изменена
+    var highlightTarget = false; // после «Повторить» цель подсвечена, пока равна старту или противоречит направлению и не изменена
+    var repeatStart = null;      // итог прошлой цели при повторе (только inputMode = current): подсказка под «Сейчас»
     var errors = {};
     var tried = false;
     var request = null; // { key, requestId } — повтор той же отправки с тем же requestId
@@ -4893,6 +4941,7 @@ window.GT_CONFIG = {
       if (!errors[key]) return null;
       if (key === 'startDate') return t('wizard.err.startRange'); // validation_failed field=startDate показывается у поля старта
       if (key === 'title' && errors[key] === 'required') return t('goalSettings.titleRequired');
+      if (errors[key] === 'direction') return t(draft.direction === 'decline' ? 'wizard.err.directionDecline' : 'wizard.err.directionGrowth');
       return t(ERR[errors[key]] || 'wizard.err.required');
     }
     function refresh() { errors = tried ? W.validate(draft, env.todayStr(), env.boot().limits.maxActions) : {}; }
@@ -4990,14 +5039,14 @@ window.GT_CONFIG = {
       box.appendChild(panel);
 
       var targetField = U.field(t('wizard.fTarget'), target, t('wizard.hintTarget'), errText('targetValue'));
-      if (highlightTarget && draft.startValue === draft.targetValue) targetField.classList.add('highlight');
+      if (highlightTarget && W.needsNewTarget(draft)) targetField.classList.add('highlight');
       panel.appendChild(put(blk('wizard.secGoal'), [
         U.field(t('wizard.fTitle'), title, t('wizard.hintTitle'), errText('title')),
         U.field(t('wizard.fUnit'), unit, t('wizard.hintUnit'), errText('unit')),
         h('div', { class: 'field' }, h('span', { class: 'label', text: t('wizard.fDirection') }),
           seg([{ value: 'growth', label: t('wizard.growth') }, { value: 'decline', label: t('wizard.decline') }], draft.direction,
             function (v) { draft.direction = v; refresh(); step2(true); })),
-        U.field(t('wizard.fStart'), start, t('wizard.hintStart'), errText('startValue')),
+        U.field(t('wizard.fStart'), start, repeatStart !== null ? t('wizard.repeatStart', { n: env.F.num(repeatStart), unit: draft.unit }) : t('wizard.hintStart'), errText('startValue')),
         targetField]));
 
       var period = blk('wizard.secPeriod');
@@ -5133,6 +5182,7 @@ window.GT_CONFIG = {
     if (params && params.repeat) { // «Повторить эту цель»: сразу шаг 2; заготовки (presets) нужны только для кнопки «Назад»
       draft = W.initFromRepeat(params.repeat, { today: env.todayStr(), timezone: tz });
       highlightTarget = true;
+      if (params.repeat.inputMode === 'current') repeatStart = params.repeat.suggestedStartValue;
       step2();
     } else {
       step1();
@@ -5220,6 +5270,10 @@ window.GT_CONFIG = {
     var progTimer = null;   // пауза ввода перед фиксацией числа
     var editTimer = null;
     var editing = null;    // actionId, у которого сейчас открыт ввод числа
+    var editA = null;      // действие, чьё поле открыто, и его поле/строка ошибки (для фиксации числа перед сохранением)
+    var editInputEl = null;
+    var editErr = null;
+    var progCommit = null; // фиксация числа из «Сколько сейчас» (задаётся при отрисовке блока)
     var statusEl = null;
     var highlightDone = false;
     var me = env.myMember();
@@ -5229,7 +5283,7 @@ window.GT_CONFIG = {
     // Контроллер один на сессию (вместе с очередью записи): при смене вкладки он отвязывается, накопленное уходит в фоне,
     // а возвращаясь сюда, экран подключается к тому же контроллеру и видит и значения, и плашку ошибки, если что-то не сохранилось.
     var ctrl = env.todayController();
-    ctrl.bind({ onChange: draw, onGoalReached: function () { env.reboot(); }, onError: function () { /* статус виден на экране */ } });
+    ctrl.bind({ onChange: draw, onGoalReached: function () { env.reboot(); }, onError: function () { /* статус виден на экране */ }, beforeSave: flushInputs });
     env.onLeave(function () { ctrl.leave(); });
 
     function s() { return ctrl.state; }
@@ -5256,7 +5310,9 @@ window.GT_CONFIG = {
     function dayHeader() {
       var d = s().data;
       var date = s().date;
-      var rem = goalBrief && goalBrief.direction === 'decline' ? d.goal.currentValue - d.goal.targetValue : d.goal.targetValue - d.goal.currentValue;
+      var cur = ctrl.goalTotal();
+      var status = ctrl.goalStatus(goalBrief && goalBrief.direction);
+      var rem = goalBrief && goalBrief.direction === 'decline' ? cur - d.goal.targetValue : d.goal.targetValue - cur;
       var best = 0;
       d.actions.forEach(function (a) { if (a.streak > best) best = a.streak; });
       var label = date === today ? t('today.todayLabel', { date: F.dayLong(date) }) : F.dayLong(date);
@@ -5264,7 +5320,7 @@ window.GT_CONFIG = {
       var next = U.button('→', function () { go(env.D.addDays(date, 1)); }, { secondary: true, aria: t('today.nextDay'), disabled: date >= today });
       return h('section', { class: 'blk day-head' },
         h('div', { class: 'row between' }, prev, h('strong', { text: label }), next),
-        h('p', { class: 'goal-line', text: t('today.goalLine', { cur: F.num(d.goal.currentValue), target: F.num(d.goal.targetValue), unit: d.goal.unit,
+        h('p', { class: 'goal-line', text: t(status === 'over' ? 'today.goalLineOver' : status === 'reached' ? 'today.goalLineReached' : 'today.goalLine', { cur: F.num(cur), target: F.num(d.goal.targetValue), unit: d.goal.unit,
           rem: F.num(Math.max(0, rem)), days: d.goal.daysLeft, daysWord: F.plural(d.goal.daysLeft, [t('today.day1'), t('today.day2'), t('today.day5')]) }) }),
         best > 0 ? h('p', { class: 'hint', text: t('today.streak', { n: best }) }) : null);
     }
@@ -5283,7 +5339,7 @@ window.GT_CONFIG = {
 
     function startEdit(a) {
       editing = a.id;
-      draw();
+      draw(true); // обычная перерисовка при открытом поле пропускается, эта строит само поле
       var input = box.querySelector('input[data-edit="' + a.id + '"]');
       if (input) { input.focus(); input.select(); }
     }
@@ -5297,6 +5353,8 @@ window.GT_CONFIG = {
         var v = U.parseNum(raw);
         if (v !== null && v >= 0 && v !== ctrl.value(a.id) && ctrl.setExact(a.id, v) === false) bigErr = a.id;
       }
+      ctrl.clearRejected(a.id); // поле закрывается, в нём снова принятое число
+      editInputEl = null; editErr = null;
       draw();
       focusBig();
     }
@@ -5318,13 +5376,30 @@ window.GT_CONFIG = {
       // число фиксируется на паузе ввода, не выходя из поля: «Сохранить» появляется, даже если клавиатуру не закрыли
       input.addEventListener('input', function () {
         if (editTimer) env.cancel(editTimer);
-        editTimer = env.schedule(function () {
-          editTimer = null;
-          var v = U.parseNum(input.value);
-          if (editing === a.id && v !== null && v >= 0 && v !== ctrl.value(a.id)) ctrl.setExact(a.id, v);
-        }, 300);
+        editTimer = env.schedule(function () { editTimer = null; applyEditInput(a, input); }, 300);
       });
+      editA = a; editInputEl = input;
       return input;
+    }
+
+    // Ошибка «Слишком большое число» сразу под полем, без перерисовки (поле в фокусе)
+    function markBig(errEl, input, bad) {
+      if (errEl) errEl.hidden = !bad;
+      input.setAttribute('aria-invalid', bad ? 'true' : 'false');
+    }
+
+    function applyEditInput(a, input) {
+      if (editing !== a.id) return;
+      var v = U.parseNum(input.value);
+      if (v === null || v < 0 || v === ctrl.value(a.id)) { ctrl.clearRejected(a.id); markBig(editErr, input, false); return; }
+      var bad = ctrl.setExact(a.id, v) === false;
+      markBig(editErr, input, bad);
+    }
+
+    // Перед любым сохранением (в том числе кнопкой Telegram, без потери фокуса) число из поля попадает в черновик
+    function flushInputs() {
+      if (progTimer && progCommit) { env.cancel(progTimer); progTimer = null; progCommit(); }
+      if (editTimer && editInputEl) { env.cancel(editTimer); editTimer = null; applyEditInput(editA, editInputEl); }
     }
 
     function actionRow(a) {
@@ -5342,27 +5417,36 @@ window.GT_CONFIG = {
           editing === a.id ? editInput(a) : valueButton(a),
           h('span', { class: 'unit-label', text: a.unit }),
           ro ? null : U.button('+', function () { ctrl.plus(a.id); }, { aria: t('today.more', { title: a.title }) })),
-        bigShown === a.id ? h('p', { class: 'field-error', text: t('common.tooBig') }) : null);
+        editing === a.id ? (editErr = errEl(false)) : (bigShown === a.id ? errEl(true) : null));
     }
+
+    function errEl(shown) { return h('p', { class: 'field-error', text: t('common.tooBig'), hidden: !shown }); }
 
     // ----- прогресс цели за день -----
     function progressBlock() {
       var d = s().data;
       var mode = d.progress.inputMode;
       // шаг «−/+» по оставшемуся диапазону (старта в today.get нет): для прироста за день — масштаб дня, для текущего значения — 1/100 диапазона
-      var step = F.progressStep(d.goal.currentValue, d.goal.targetValue, mode === 'delta' ? 30 : 100);
+      var step = F.progressStep(ctrl.goalTotal(), d.goal.targetValue, mode === 'delta' ? 30 : 100);
       var val = s().progress ? s().progress.value : 0;
       // пока идёт сохранение (после него может открыться S-40), поле и «−/+» заблокированы, виден индикатор
       var saving = s().status === 'saving';
       var input = h('input', { type: 'text', inputmode: 'decimal', value: String(val).replace('.', ','), disabled: ro || saving, 'aria-label': t(mode === 'current' ? 'today.progressNow' : 'today.progressAdded') });
       // Число фиксируется на паузе ввода (на цифровой клавиатуре iOS нет Enter), на потере фокуса и на Enter. Пока поле в фокусе, экран не
       // перерисовывается (draw пропускается), иначе поле пересоздалось бы посреди ввода.
+      // Отклонённое число (выше предела): ошибка сразу под полем, «Сохранить» заблокирована, пока оно в поле.
       function commitProgress() {
         var v = U.parseNum(input.value);
-        if (v === null || (mode !== 'delta' && v < 0)) return;
-        if (s().progress && v === s().progress.value) return;
-        if (ctrl.setProgress(v) === false) bigErr = 'progress';
+        if (v === null || (mode !== 'delta' && v < 0) || (s().progress && v === s().progress.value)) {
+          ctrl.clearRejected('progress'); markBig(progErr, input, false);
+          return;
+        }
+        var bad = ctrl.setProgress(v) === false;
+        if (bad) bigErr = 'progress';
+        markBig(progErr, input, bad);
       }
+      var progErr = errEl(false);
+      progCommit = commitProgress;
       progInput = input;
       input.addEventListener('focus', function () { progEditing = true; });
       input.addEventListener('input', function () {
@@ -5375,10 +5459,10 @@ window.GT_CONFIG = {
         if (progTimer) { env.cancel(progTimer); progTimer = null; }
         commitProgress();
         progEditing = false;
+        ctrl.clearRejected('progress'); // поле перерисуется с принятым числом
         draw();
         focusBig();
       });
-      var over = !ro && ctrl.overTarget(goalBrief && goalBrief.direction);
       return h('section', { class: 'blk' },
         h('label', null, h('span', { class: 'label', text: t(mode === 'current' ? 'today.progressNow' : 'today.progressAdded') }),
           h('div', { class: 'row stepper' },
@@ -5386,8 +5470,7 @@ window.GT_CONFIG = {
             input, h('span', { class: 'unit-label', text: d.goal.unit }),
             ro ? null : U.button('+', function () { ctrl.stepProgress(1, step); }, { aria: t('today.progressMore'), disabled: saving }))),
         saving ? h('div', { class: 'busy' }, U.spinner()) : null,
-        bigShown === 'progress' ? h('p', { class: 'field-error', text: t('common.tooBig') }) : null,
-        over ? h('p', { class: 'hint', text: t('today.overTarget') }) : null);
+        bigShown === 'progress' ? errEl(true) : progErr);
     }
 
     // ----- итог дня -----
@@ -5422,9 +5505,9 @@ window.GT_CONFIG = {
         ro ? null : U.button(t('today.addTask'), function () { env.go('tasks', { goalId: d.goal.id }); }, { secondary: true }));
     }
 
-    function draw() {
+    function draw(force) {
       if (!s().data) return;
-      if (editing || (progEditing && progInput && document.activeElement === progInput)) { updateStatus(); return; }
+      if (force !== true && (editing || (progEditing && progInput && document.activeElement === progInput))) { updateStatus(); return; }
       var d = s().data;
       var scroll = window.scrollY;
       bigShown = bigErr; bigErr = null;
@@ -5535,6 +5618,7 @@ window.GT_CONFIG = {
 
     function load() {
       return env.call('task.list', { goalId: params.goalId }).then(function (res) {
+        if (env.diag) env.diag.redraw({ at: Date.now(), source: 'task.list', screen: 'tasks', scrollY: Math.round(window.scrollY || 0) }); // список под формой перерисован
         list.textContent = '';
         if (!res.ok) {
           list.appendChild(h('p', { class: res.error.code === 'module_disabled' ? 'notice' : 'error',
@@ -5884,6 +5968,7 @@ window.GT_CONFIG = {
       }
       var d = res.data;
       var g = d.goal;
+      if (env.setTitle) env.setTitle(g.title);
       var form = reflectionFields(env, myReflection(env, d));
       var state = 'open'; // рефлексия: open → saved | skipped
       var reflectionBox = h('section', { class: 'blk' });
@@ -6246,6 +6331,11 @@ window.GT_CONFIG = {
       shown.forEach(function (c) {
         lines.push(t('diag.cacheLine', { time: clock(c.at), method: c.method, shown: c.shownMs, age: ageText(c.ageMs), refresh: t(c.refreshed ? 'diag.cacheRefresh' : 'diag.cacheNoRefresh') }));
       });
+    }
+    var redraws = d.redrawList();
+    if (redraws.length) {
+      lines.push(t('diag.redrawHeader'));
+      redraws.forEach(function (r) { lines.push(t('diag.redrawLine', { time: clock(r.at), source: r.source, screen: r.screen, y: r.scrollY })); });
     }
     return lines.join('\n');
   }
@@ -6846,12 +6936,12 @@ window.GT_CONFIG = {
     },
     period: function () { return desc && desc.period ? desc.period : null; }, // 'before' | 'after': сегодня вне периода активной цели
     todayStr: function () { var b = boot(); return GT.dates.todayIn(b.cabinet ? b.cabinet.timezone : 'Europe/Moscow', Date.now()); },
-    go: function (name, params) { nav.stack.push({ name: name, params: params || {} }); showCurrent(); },
-    back: function () { nav.stack.pop(); showCurrent(); },
-    tab: function (name) { nav.tab = name; nav.stack = []; renderChrome(); showCurrent(); },
+    go: function (name, params) { nav.stack.push({ name: name, params: params || {} }); showCurrent('go'); },
+    back: function () { nav.stack.pop(); showCurrent('back'); },
+    tab: function (name) { nav.tab = name; nav.stack = []; renderChrome(); showCurrent('tab'); },
     reboot: function (keepTab) { nav.keepTab = !!keepTab; return flow.retry(); },
     noGoal: function () { return !!(desc && desc.noGoal); }, // S-41: активной цели нет, архивные есть (или участник ждёт владельца)
-    completeGoal: completeGoal, closeSummary: closeSummary, goalCreated: goalCreated, dismissReflection: dismissReflection,
+    completeGoal: completeGoal, closeSummary: closeSummary, setTitle: setTitle, goalCreated: goalCreated, dismissReflection: dismissReflection,
     toast: U.toast,
     fail: function (res) { U.toast(S.errorText(res.error), 'error'); },
     openLink: function (url) { if (tg && tg.openLink) tg.openLink(new URL(url, location.href).href); else window.open(url, '_blank', 'noopener'); },
@@ -6919,7 +7009,7 @@ window.GT_CONFIG = {
   function goBack() {
     if (!GT.chrome.backVisible(desc, nav, helpOpen, screenBack, !!consentPending)) return;
     if (consentPending) return consentDecline(); // BackButton на S-06 = «Отказаться»
-    if (helpOpen) { helpOpen = false; renderChrome(); showCurrent(); return; }
+    if (helpOpen) { helpOpen = false; renderChrome(); showCurrent('help'); return; }
     if (typeof screenBack === 'function') return screenBack();
     env.back();
   }
@@ -6967,7 +7057,9 @@ window.GT_CONFIG = {
     var vv = window.visualViewport;
     var height = vv ? vv.height : window.innerHeight;
     if (height > baseHeight) baseHeight = height;
-    document.body.classList.toggle('kbd', GT.chrome.keyboardOpen(baseHeight, height, editing));
+    var open = GT.chrome.keyboardOpen(baseHeight, height, editing);
+    if (open !== document.body.classList.contains('kbd')) logRedraw(open ? 'body.kbd on' : 'body.kbd off'); // меняется высота страницы
+    document.body.classList.toggle('kbd', open);
   }
 
   // Кэш последнего «Сегодня» (ключ — пользователь): при открытии показывается сразу, пока идёт app.bootstrap.
@@ -7029,9 +7121,12 @@ window.GT_CONFIG = {
   function goalCreated(data, sent) { showDescriptor(GT.router.bootAfterCreate(boot(), data, sent)); }
 
   // ---------- оболочка ----------
-  function titleText() {
-    var b = desc && desc.boot;
-    return b && b.activeGoal ? b.activeGoal.title : t('app.name');
+  function titleText() { return GT.chrome.titleText(desc, t('app.name')); }
+
+  // S-33 после перезапуска узнаёт цель из history.get уже после отрисовки шапки
+  function setTitle(text) {
+    var h1 = root.querySelector('h1');
+    if (h1) h1.textContent = text;
   }
 
   function renderChrome() {
@@ -7044,7 +7139,7 @@ window.GT_CONFIG = {
       backEl,
       h('h1', { text: titleText() }),
       d.screen === 'loading' ? null :
-        h('button', { type: 'button', class: 'secondary', 'aria-label': t('common.help'), text: 'i', onclick: function () { helpOpen = !helpOpen; renderChrome(); showCurrent(); } }));
+        h('button', { type: 'button', class: 'secondary', 'aria-label': t('common.help'), text: 'i', onclick: function () { helpOpen = !helpOpen; renderChrome(); showCurrent('help'); } }));
     root.appendChild(header);
     if (d.readOnly) root.appendChild(h('div', { class: 'banner', text: t('common.readOnlyBanner') }));
     var main = h('main', { id: 'view' });
@@ -7093,7 +7188,15 @@ window.GT_CONFIG = {
     return started;
   }
 
-  function showCurrent() {
+  // Журнал причин перерисовки для «Диагностики» (прокрутка страницы сбрасывается при полной перерисовке экрана)
+  function logRedraw(source) {
+    var top = nav.stack[nav.stack.length - 1];
+    var screen = desc ? (desc.screen === 'today' ? (top ? top.name : nav.tab) : desc.screen) : '—';
+    GT.diag.redraw({ at: Date.now(), source: source, screen: screen, scrollY: Math.round(window.scrollY || 0) });
+  }
+
+  function showCurrent(source) {
+    logRedraw(source || 'showCurrent');
     if (desc && desc.screen !== 'loading') hideSplash();
     var r = showCurrentInner();
     syncTelegramButtons(); // кнопки Telegram зависят от экрана: после любой смены экрана пересчитываем
@@ -7105,7 +7208,7 @@ window.GT_CONFIG = {
     renderChrome();
     if (helpOpen) {
       return setView(h('div', null, h('h2', { text: t('help.title') }), h('p', { text: t('help.text') }),
-        U.button(t('common.close'), function () { helpOpen = false; renderChrome(); showCurrent(); })));
+        U.button(t('common.close'), function () { helpOpen = false; renderChrome(); showCurrent('help'); })));
     }
     var d = desc || { screen: 'loading' };
     if (d.screen === 'today') {
@@ -7162,7 +7265,7 @@ window.GT_CONFIG = {
     var bt = d.boot;
     if (bt && !bt.activeGoal && bt.access === 'active' && bt.role === 'owner' && !(bt.consent && bt.consent.required)) env.presets(true);
     if (d.screen !== 'loading') GT.diag.mark('firstScreen', sinceOpen(), d.screen);
-    showCurrent();
+    showCurrent('onDescriptor');
     syncTelegramButtons();
     if (d.boot) dataCache.purge(); // записи чужого кабинета и участника не остаются
     if (d.screen === 'today' && !d.cached) env.schedule(tabData.startBackground, 0);
@@ -7210,7 +7313,7 @@ window.GT_CONFIG = {
       ctrl.adoptBoot(cached.boot.today);
       ctrl.setStale(true);
       GT.diag.mark('firstScreen', sinceOpen(), 'cache');
-      showCurrent();
+      showCurrent('cache');
       syncTelegramButtons();
     } else {
       onDescriptor({ screen: 'loading' });
@@ -7246,9 +7349,10 @@ window.GT_CONFIG = {
   });
   document.addEventListener('pointercancel', function () { tapStart = null; });
   // Возврат на передний план и запись другого экземпляра в хранилище черновиков: день без правок перезагружается (today-logic.resume)
-  document.addEventListener('visibilitychange', function () { if (!document.hidden && todayCtrl) todayCtrl.resume(); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && todayCtrl) { logRedraw('resume'); todayCtrl.resume(); } });
   window.addEventListener('storage', function (e) {
     if (!todayCtrl || !e.key || e.key.indexOf('gt:draft:v1:') !== 0) return;
+    logRedraw('storage');
     draftStore.drop(e.key.slice('gt:draft:v1:'.length));
     todayCtrl.resume({ force: true });
   });
