@@ -545,8 +545,9 @@ window.GT_CONFIG = {
     var o = options || {};
     var doFetch = o.fetch;
     var timeoutMs = o.timeoutMs != null ? o.timeoutMs : 10000;
-    // goal.create тяжелее остальных методов (цель, действия, задачи одним вызовом): 20 с (api.md §4); повтор безопасен, у метода есть журнал
-    var methodTimeouts = o.methodTimeouts || (o.timeoutMs != null ? {} : { 'goal.create': 20000 });
+    // goal.create тяжелее остальных методов (цель, действия, задачи одним вызовом): 20 с (api.md §4); повтор безопасен, у метода есть журнал.
+    // Запись дня тоже 20 с: сервер ждёт блокировку до 8 с и потом выполняет запись, при 10 с ответ busy часто не успевает дойти (В5)
+    var methodTimeouts = o.methodTimeouts || (o.timeoutMs != null ? {} : { 'goal.create': 20000, 'day.save': 20000, 'day.completeAll': 20000, 'day.finish': 20000 });
     var attempts = o.attempts != null ? o.attempts : 3;
     var pauses = o.pauses || [1000, 3000];
     var jitterMs = o.jitterMs != null ? o.jitterMs : 500;
@@ -607,6 +608,7 @@ window.GT_CONFIG = {
       var startedAt = Date.now();
       var log = []; // по каждой попытке: сколько миллисекунд и чем кончилась (для «Диагностики»)
       var serverTime = null;
+      var lastError = null;
 
       function finish(result) {
         if (slowTimer) clearTimeout(slowTimer);
@@ -647,11 +649,13 @@ window.GT_CONFIG = {
               details: e.details || null
             };
             log.push(entry(ms, error.code, serverMs));
+            lastError = error;
             if (RETRY_CODES[error.code] && n < attempts) return pauseThen(n);
             return finish({ ok: false, requestId: requestId, error: error });
           },
           function (err) {
             log.push({ ms: Math.round(now() - a0), result: 'network:' + (err && err.message ? err.message : 'error') });
+            lastError = networkError(requestId, err && err.message).error;
             if (n < attempts) return pauseThen(n);
             return finish(networkError(requestId, err && err.message));
           }
@@ -660,9 +664,10 @@ window.GT_CONFIG = {
 
       // opts.canRetry() — вызывающий может запретить повторы: если после запроса появилось более новое изменение,
       // повторять старое тело нельзя (сервер не хранит журнал повторов для записи факта), вызов заканчивается кодом 'superseded'
+      // details.cause — ошибка последней неудавшейся попытки: вызывающий не оставит отказ тихим
       function superseded() {
         log.push({ ms: 0, result: 'superseded' });
-        return finish({ ok: false, requestId: requestId, error: { code: 'superseded', message: 'newer change', retryable: false, retryAfterSec: null, details: null } });
+        return finish({ ok: false, requestId: requestId, error: { code: 'superseded', message: 'newer change', retryable: false, retryAfterSec: null, details: { cause: lastError } } });
       }
       var canRetry = opts && opts.canRetry;
 
@@ -3745,6 +3750,9 @@ window.GT_CONFIG = {
     // ---------- данные дня с сервера ----------
     // Принять данные дня (today.get или app.bootstrap.today) и наложить на них черновик из хранилища.
     function applyServer(data) {
+      // упавшее сохранение того же дня не стирается приходом данных: ошибка остаётся до успешной отправки или явного «Отбросить»;
+      // seq = -1 — «Повторить» отправит актуальный день целиком, а не старое тело
+      var sameDay = !!failed && !!s.data && s.data.goal.id === data.goal.id && s.date === data.date;
       s.data = data;
       s.date = data.date;
       s.loadedAt = now();
@@ -3756,8 +3764,8 @@ window.GT_CONFIG = {
       s.markers = {};
       s.undo = null;
       if (undoTimer) { o.cancel(undoTimer); undoTimer = null; }
-      failed = null;
-      lastChange = {}; lastProgressChange = 0; changeSeq = 0; unsent = {}; progressUnsent = false; rejectedKeys = {};
+      if (sameDay) failed.seq = -1; else failed = null;
+      lastChange = {}; lastProgressChange = 0; unsent = {}; progressUnsent = false; rejectedKeys = {};
       var mid = myMemberId();
       var me = data.members.filter(function (m) { return m.id === mid; })[0] || data.members[0];
       s.day = me ? { doneCount: me.doneCount, totalCount: me.totalCount, percent: me.percent, percentRaw: me.percentRaw, dayEntered: data.dayEntered } : null;
@@ -3780,7 +3788,7 @@ window.GT_CONFIG = {
     function load(date, opts) {
       var discard = !!(opts && opts.discard);
       var token = ++loadToken;
-      if (discard && s.data) { drafts.remove(keyOf(s.date)); s.restored = null; }
+      if (discard && s.data) { drafts.remove(keyOf(s.date)); s.restored = null; failed = null; }
       return q.idle().then(function () {
         if (token !== loadToken) return { ok: true, data: s.data, superseded: true };
         return o.call('today.get', date ? { date: date } : {}).then(function (res) {
@@ -3814,7 +3822,7 @@ window.GT_CONFIG = {
     // Данные «Сегодня» из ответа app.bootstrap (или из кэша): принять без запроса. Пока идёт запись, ответ сервера может быть старше неё — пропускаем.
     function adoptBoot(today) {
       if (!today) { if (queued === 0) { s.data = null; } return false; }
-      if (queued > 0) return false;
+      if (queued > 0 || failed) return false; // упавшая запись: ответ сервера не должен стирать ошибку
       if (s.data && s.data.goal.id === today.goal.id && s.date !== today.date) return false; // пользователь смотрит другой день
       applyServer(today);
       settle();
@@ -3917,7 +3925,16 @@ window.GT_CONFIG = {
           return res;
         }
         // после запроса появилось более новое изменение: старое тело повторять нельзя; черновик остаётся несохранённым, «Сохранить» отправит актуальное
-        if (res.error.code === 'superseded') return res;
+        // Если до этого попытка уже упала, отказ не молчит: ошибка остаётся на экране, «Повторить» отправит актуальный день (seq = -1)
+        if (res.error.code === 'superseded') {
+          var cause = res.error.details && res.error.details.cause;
+          if (cause) {
+            failed = { method: method, params: params, requestId: res.requestId, seq: -1, onOk: onOk || null };
+            s.error = cause;
+            if (handlers.onError) handlers.onError(cause);
+          }
+          return res;
+        }
         // цель завершена или удалена: черновик не нужен и не отправляется повторно (screens.md §3.3)
         if (GOAL_GONE[res.error.code]) { forget(); if (o.onGoalGone) o.onGoalGone(res.error); return res; }
         failed = { method: method, params: params, requestId: res.requestId, seq: seq, onOk: onOk || null };
