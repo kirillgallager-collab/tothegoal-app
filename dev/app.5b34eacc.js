@@ -232,7 +232,7 @@ window.GT_CONFIG = {
       marks: 'Старт (мс от открытия страницы): скрипты готовы {scripts}, первый экран {first} ({what})',
       reasons: { start: 'старт', action: 'действие', tab: 'вкладка', background: 'фон' },
       last: 'Последние {n} запросов, новые сверху:', line: '{time} {method} [{reason}] · отправлен на {since} мс · ждали {ms} мс · {code} · requestId {id}{attempts}', ageSec: '{n} с', ageMin: '{n} мин', ageHour: '{n} ч', cachedMark: ' · из кэша (экран за {shown} мс, данным {age})', cacheHeader: 'Показано из кэша (экран за … мс от открытия вкладки):', cacheLine: '{time} {method} · из кэша · экран за {shown} мс · данным {age} · {refresh}', redrawHeader: 'Перерисовки экрана и события (источник · экран · прокрутка), новые сверху:', redrawLine: '{time} {source} · {screen} · прокрутка {y}',
-      cacheRefresh: 'свежие запрошены', cacheNoRefresh: 'без запроса (данные не меняются)', attempts: ' · попытки (мс, итог): {list}', serverMs: ' (сервер {n} мс)',
+      cacheRefresh: 'свежие запрошены', cacheNoRefresh: 'без запроса (данные не меняются)', attempts: ' · попытки (мс, итог): {list}', serverMs: ' (сервер {n} мс)', hedgeSent: ' (запасной отправлен)', hedgeWon: ' (ответил запасной)',
       copy: 'Скопировать', copied: 'Скопировано', copyFail: 'Не удалось скопировать автоматически: выделите текст выше и скопируйте вручную.', refresh: 'Обновить'
     },
     goalSettings: {
@@ -521,6 +521,10 @@ window.GT_CONFIG = {
   // date_out_of_range, validation_failed, …) не повторяются никогда; rate_limited и locked ждут retryAfterSec.
   var RETRY_CODES = { busy: true, request_in_progress: true, service_busy: true, unavailable: true };
 
+  // Методы только чтения (api.md): им можно слать запасной запрос. app.bootstrap не в списке: в режиме whitelist создаёт доступ и кабинет.
+  var READ_METHODS = { 'today.get': true, 'dashboard.get': true, 'history.list': true, 'history.get': true, 'goal.get': true,
+    'presets.list': true, 'task.list': true, 'cabinet.get': true, 'goal.raiseBar.preview': true };
+
   function uuidV4() {
     var c = (typeof globalThis !== 'undefined' && globalThis.crypto) || null;
     if (c && typeof c.randomUUID === 'function') return c.randomUUID();
@@ -547,7 +551,7 @@ window.GT_CONFIG = {
 
   // options:
   //   apiUrl, fetch, getInitData()           — обязательны (fetch в тестах поддельный)
-  //   timeoutMs=10000, attempts=3, pauses=[1000,3000], jitterMs=500
+  //   timeoutMs=10000, attempts=3, pauses=[1000,3000], jitterMs=500, hedgeMs=6000 (запасной запрос для чтения)
   //   slowMs=1000, onSlow()                  — вызвать, если ответа нет через slowMs
   //   sleep(ms), random(), uuid()            — подменяются в тестах
   function createClient(options) {
@@ -557,6 +561,7 @@ window.GT_CONFIG = {
     // goal.create тяжелее остальных методов (цель, действия, задачи одним вызовом): 20 с (api.md §4); повтор безопасен, у метода есть журнал.
     // Запись дня тоже 20 с: сервер ждёт блокировку до 8 с и потом выполняет запись, при 10 с ответ busy часто не успевает дойти (В5)
     var methodTimeouts = o.methodTimeouts || (o.timeoutMs != null ? {} : { 'goal.create': 20000, 'day.save': 20000, 'day.completeAll': 20000, 'day.finish': 20000 });
+    var hedgeMs = o.hedgeMs != null ? o.hedgeMs : 6000; // запасной запрос для чтения: обычное чтение на телефоне 2–5 с
     var attempts = o.attempts != null ? o.attempts : 3;
     var pauses = o.pauses || [1000, 3000];
     var jitterMs = o.jitterMs != null ? o.jitterMs : 500;
@@ -567,38 +572,57 @@ window.GT_CONFIG = {
     // Замеры для «Диагностики»: now() в миллисекундах (performance.now), onCall(запись) после каждого вызова
     var now = o.now || (typeof performance !== 'undefined' && performance.now ? performance.now.bind(performance) : Date.now);
 
-    // Одна попытка: вернуть разобранный ответ-конверт или бросить Error (сеть, таймаут, не-JSON).
-    function attempt(body, timeoutMs) {
-      var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      var timer;
-      var timeout = new Promise(function (_, reject) {
-        timer = setTimeout(function () {
-          if (controller) controller.abort();
-          reject(new Error('timeout'));
-        }, timeoutMs);
+    // Одна попытка: вернуть { json: разобранный ответ-конверт, hedge } или бросить Error (сеть, таймаут, не-JSON).
+    // hedgeMs > 0 (только чтение): если ответа нет через hedgeMs, параллельно уходит второй такой же запрос, первый не обрывается;
+    // берётся тот ответ, что пришёл раньше, остальное игнорируется. Предел ожидания общий — timeoutMs от первой отправки.
+    // hedge: null — запасного не было; 'sent' — был, ответил первый; 'won' — ответил запасной (то же в err.hedge у отказа).
+    function attempt(body, timeoutMs, hedgeMs) {
+      return new Promise(function (resolve, reject) {
+        var controllers = [];
+        var pending = 0;
+        var hedged = false;
+        var over = false;
+        var hedgeTimer = null;
+        var timer = setTimeout(function () { end(reject, new Error('timeout')); }, timeoutMs);
+        function end(fn, v) {
+          if (over) return;
+          over = true;
+          clearTimeout(timer);
+          if (hedgeTimer) clearTimeout(hedgeTimer);
+          controllers.forEach(function (c) { try { c.abort(); } catch (e) { /* запрос уже закончен */ } });
+          if (fn === reject && hedged && v) v.hedge = 'sent';
+          fn(v);
+        }
+        function launch(spare) {
+          var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          if (controller) controllers.push(controller);
+          pending++;
+          Promise.resolve()
+            .then(function () {
+              return doFetch(o.apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: body,
+                signal: controller ? controller.signal : undefined
+              });
+            })
+            .then(function (res) { return res.text(); })
+            .then(function (text) {
+              var json;
+              try { json = JSON.parse(text); } catch (e) { throw new Error('not-json'); }
+              if (!json || typeof json !== 'object' || typeof json.ok !== 'boolean') throw new Error('not-envelope');
+              return json;
+            })
+            .then(
+              function (json) { end(resolve, { json: json, hedge: hedged ? (spare ? 'won' : 'sent') : null }); },
+              function (err) { pending--; if (pending === 0) end(reject, err); } // второй ещё в пути — ждём его
+            );
+        }
+        if (hedgeMs > 0 && hedgeMs < timeoutMs) {
+          hedgeTimer = setTimeout(function () { hedgeTimer = null; hedged = true; launch(true); }, hedgeMs);
+        }
+        launch(false);
       });
-      var request = Promise.resolve()
-        .then(function () {
-          return doFetch(o.apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: body,
-            signal: controller ? controller.signal : undefined
-          });
-        })
-        .then(function (res) { return res.text(); })
-        .then(function (text) {
-          var json;
-          try { json = JSON.parse(text); } catch (e) { throw new Error('not-json'); }
-          if (!json || typeof json !== 'object' || typeof json.ok !== 'boolean') throw new Error('not-envelope');
-          return json;
-        });
-      // request.catch — чтобы после победы таймаута поздний отказ не стал «необработанным».
-      request.catch(function () {});
-      return Promise.race([request, timeout]).then(
-        function (v) { clearTimeout(timer); return v; },
-        function (e) { clearTimeout(timer); throw e; }
-      );
     }
 
     // call(method, params, { requestId }) — requestId можно передать, чтобы повторить действие
@@ -632,21 +656,24 @@ window.GT_CONFIG = {
         return result;
       }
 
-        function entry(ms, result, serverMs) {
+        function entry(ms, result, serverMs, hedge) {
         var e = { ms: ms, result: result };
         if (serverMs != null) e.serverMs = serverMs;
+        if (hedge) e.hedge = hedge;
         return e;
       }
 
       function run(n) {
         var a0 = now();
-        return attempt(body, methodTimeouts[method] || timeoutMs).then(
-          function (json) {
+        return attempt(body, methodTimeouts[method] || timeoutMs, READ_METHODS[method] ? hedgeMs : 0).then(
+          function (got) {
+            var json = got.json;
+            var hedge = got.hedge;
             var ms = Math.round(now() - a0);
             if (json.serverTime) serverTime = json.serverTime;
             var serverMs = typeof json.serverMs === 'number' ? json.serverMs : null; // сколько сервер обрабатывал запрос (без сети и холодного старта)
             if (json.ok) {
-              log.push(entry(ms, 'ok', serverMs));
+              log.push(entry(ms, 'ok', serverMs, hedge));
               return finish({ ok: true, data: json.data, replayed: !!json.replayed, serverTime: json.serverTime, requestId: requestId });
             }
             var e = json.error || {};
@@ -657,13 +684,13 @@ window.GT_CONFIG = {
               retryAfterSec: typeof e.retryAfterSec === 'number' ? e.retryAfterSec : null,
               details: e.details || null
             };
-            log.push(entry(ms, error.code, serverMs));
+            log.push(entry(ms, error.code, serverMs, hedge));
             lastError = error;
             if (RETRY_CODES[error.code] && n < attempts) return pauseThen(n);
             return finish({ ok: false, requestId: requestId, error: error });
           },
           function (err) {
-            log.push({ ms: Math.round(now() - a0), result: 'network:' + (err && err.message ? err.message : 'error') });
+            log.push(entry(Math.round(now() - a0), 'network:' + (err && err.message ? err.message : 'error'), null, err && err.hedge));
             lastError = networkError(requestId, err && err.message).error;
             if (n < attempts) return pauseThen(n);
             return finish(networkError(requestId, err && err.message));
@@ -789,7 +816,7 @@ window.GT_CONFIG = {
 
   // Методы чтения: ответ записи не нужен, кэш они не сбрасывают
   var READ_ONLY = /\.(get|list|preview)$/;
-  // Запись факта дня: меняет дашборд и строку активной цели в истории
+  // Запись факта дня: меняет дашборд. Список истории от неё не сбрасывается (показывается из кэша, свежее придёт запросом); его сбрасывает goal.complete
   var FACT_WRITES = { 'day.save': 1, 'fact.set': 1, 'day.completeAll': 1, 'day.finish': 1 };
 
   // o: { getStorage() → Storage|null, scope() → строка области или null (кабинет неизвестен), now(), maxBytes = 250000 }
@@ -947,7 +974,7 @@ window.GT_CONFIG = {
     function beforeWrite(method, params) {
       if (READ_ONLY.test(method) || method === 'presets.list') return;
       writing++;
-      if (FACT_WRITES[method]) { invalidate('dashboard'); invalidate('history.list', undefined, 'all'); return; }
+      if (FACT_WRITES[method]) { invalidate('dashboard'); return; }
       bump('dashboard'); bump('history.list'); bump('goal.get');
       if (params && params.goalId) bump('history.get', params.goalId);
     }
@@ -958,7 +985,7 @@ window.GT_CONFIG = {
       if (READ_ONLY.test(method) || method === 'presets.list') return;
       if (writing > 0) writing--;
       var goalId = params && params.goalId;
-      if (FACT_WRITES[method]) { invalidate('dashboard'); invalidate('history.list', undefined, 'all'); return; }
+      if (FACT_WRITES[method]) { invalidate('dashboard'); return; }
       if (method === 'goal.update' && res && res.ok && res.data && res.data.goal) {
         invalidate('dashboard'); invalidate('history.list'); bump('goal.get', res.data.goal.id);
         var cur = get('goal.get', res.data.goal.id, '');
@@ -3921,7 +3948,8 @@ window.GT_CONFIG = {
       notify();
       changed();
       var seq = changeSeq;
-      var p = q.run(function () { return doSend(method, params, requestId, onOk, seq); });
+      // today.get за процентом, отправленный до этой записи прогресса, показал бы число до неё: его ответ на экран не применяется
+      var p = q.run(function () { if (params && params.progress) percentToken++; return doSend(method, params, requestId, onOk, seq); });
       return p.then(function (r) { queued--; after(r); return r; }, function (e) { queued--; after(); throw e; });
     }
 
@@ -6359,9 +6387,9 @@ window.GT_CONFIG = {
     if (list.length) {
       lines.push(t('diag.last', { n: list.length }));
       list.forEach(function (r) {
-        var withServer = r.attempts.some(function (a) { return a.serverMs != null; });
+        var withServer = r.attempts.some(function (a) { return a.serverMs != null || a.hedge; });
         var att = r.attempts.length > 1 || r.code !== 'ok' || withServer
-          ? t('diag.attempts', { list: r.attempts.map(function (a) { return a.ms + ' ' + a.result + (a.serverMs != null ? t('diag.serverMs', { n: a.serverMs }) : ''); }).join(', ') }) : '';
+          ? t('diag.attempts', { list: r.attempts.map(function (a) { return a.ms + ' ' + a.result + (a.serverMs != null ? t('diag.serverMs', { n: a.serverMs }) : '') + (a.hedge ? t(a.hedge === 'won' ? 'diag.hedgeWon' : 'diag.hedgeSent') : ''); }).join(', ') }) : '';
         var cm = r.cached ? t('diag.cachedMark', { shown: r.cached.shownMs != null ? r.cached.shownMs : '—', age: ageText(r.cached.ageMs) }) : '';
         lines.push(t('diag.line', { time: clock(r.startedAt), method: r.method, reason: r.reason ? t('diag.reasons.' + r.reason) : '—', since: r.sinceOpen != null ? r.sinceOpen : '—',
           ms: r.ms, code: r.code, id: r.requestId, attempts: att + cm }));
