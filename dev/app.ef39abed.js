@@ -118,9 +118,8 @@ window.GT_CONFIG = {
 
     today: {
       todayLabel: 'Сегодня, {date}', prevDay: 'Предыдущий день', nextDay: 'Следующий день',
-      goalLine: '{cur} из {target} {unit} · осталось {rem} · {days} {daysWord}',
-      goalLineOver: '{cur} из {target} {unit} · цель перевыполнена · {days} {daysWord}',
-      goalLineReached: '{cur} из {target} {unit} · цель достигнута · {days} {daysWord}', day1: 'день', day2: 'дня', day5: 'дней',
+      goalLine: '{cur} из {target} {unit} · {p} % · осталось {rem} · {days} {daysWord}',
+      goalLineDone: '{cur} из {target} {unit} · {p} % · {days} {daysWord}', day1: 'день', day2: 'дня', day5: 'дней',
       streak: 'Лучшая серия: {n}', streakShort: 'серия {n}', leftText: 'Дайте согласие, чтобы участвовать', leftJoin: 'Дать согласие',
       returnedText: 'Вы снова в цели. Добавьте свои ежедневные действия.', returnedAdd: 'Добавить действия',
       factTitle: 'Факт дня', noActions: 'Ежедневных действий нет. Добавьте их в настройках.',
@@ -153,7 +152,7 @@ window.GT_CONFIG = {
       limitHint: 'До 50 задач на цель. Отметить задачу выполненной может только её исполнитель.'
     },
     reached: {
-      title: 'Цель достигнута', text: '«{title}»: вы дошли до цели. Что дальше?', finish: 'Завершить', raise: 'Поднять планку', keep: 'Продолжить как есть',
+      title: 'Цель достигнута', text: '«{title}»: вы дошли до цели. Что дальше?', percent: 'Выполнено {p} %', finish: 'Завершить', raise: 'Поднять планку', keep: 'Продолжить как есть',
       confirm: 'Завершить цель? Данные останутся в истории, внести факт за прошлые дни уже нельзя.',
       hint: 'Все три действия останутся доступными в настройках цели.'
     },
@@ -363,6 +362,9 @@ window.GT_CONFIG = {
     if (code === 'network' && error.message === 'timeout') code = 'timeout'; // код тот же (контракт), текст другой: сервер просто долго отвечает
     var base = Object.prototype.hasOwnProperty.call(S.errors, code) ? S.errors[code] : S.errors.bad_request;
     var out = base;
+    // 11a: число за пределом 1e9 — validation_failed с out_of_range на поле значения (facts[i].value, progress.value)
+    var fields = error && error.details && error.details.fields;
+    if (code === 'validation_failed' && Array.isArray(fields) && fields.some(function (f) { return f.code === 'out_of_range' && /(^|\.)value$/.test(f.field); })) out = S.common.tooBig;
     var sec = error && error.retryAfterSec;
     if (typeof sec === 'number' && sec > 0) {
       out += ' ' + (sec < 60
@@ -417,6 +419,13 @@ window.GT_CONFIG = {
     if (n == null || !isFinite(n)) return '—';
     var v = Math.round(n * 1e6) / 1e6;
     return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: maxDec == null ? 2 : maxDec }).format(v);
+  }
+
+  // Процент из percentRaw (api.md §1): целая часть вниз с защитой от погрешности, тысячи с пробелом: 99,6 → «99», 1000 → «1 000».
+  // Без «%»: знак стоит в строке текста.
+  function pct(raw) {
+    if (typeof raw !== 'number' || !isFinite(raw)) return '—';
+    return num(Math.floor(raw + 1e-9), 0);
   }
 
   // Знак для изменений без красных минусов: «+3», «−3», «0».
@@ -487,11 +496,11 @@ window.GT_CONFIG = {
     return Math.round((value + step) * 1e6) / 1e6;
   }
 
-  // Предел чисел в полях ввода (по модулю): строже контракта (1e12), чтобы опечатка вроде 15 000 055 677 не уходила на сервер
+  // Предел чисел в полях ввода (по модулю): равен контракту (api.md §1, 1e9), опечатка вроде 15 000 055 677 не уходит на сервер
   var MAX_NUM = 1e9;
   function tooBig(x) { return typeof x === 'number' && Math.abs(x) > MAX_NUM; }
 
-  var api = { MAX_NUM: MAX_NUM, tooBig: tooBig, num: num, delta: delta, plural: plural, dayLong: dayLong, dayShort: dayShort, dateFull: dateFull, period: period,
+  var api = { MAX_NUM: MAX_NUM, tooBig: tooBig, num: num, pct: pct,delta: delta, plural: plural, dayLong: dayLong, dayShort: dayShort, dateFull: dateFull, period: period,
     tzLabel: tzLabel, utcOffset: utcOffset, TZ_NAMES: TZ_NAMES, progressStep: progressStep, addStep: addStep };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.GT = root.GT || {}; root.GT.format = api; }
@@ -1651,9 +1660,9 @@ window.GT_CONFIG = {
   function ceilStable(x) { return Math.ceil(Math.round(x * 1e6) / 1e6); }
   function round2(x) { return Math.round(x * 100) / 100; }
 
-  // percentRaw — без ограничения (число с 2 знаками), percent — целое 0–100.
+  // percentRaw — без верхнего предела (число с 2 знаками), но не меньше 0 (откат = 0 %); percent — целое 0–100.
   function pair(rawFraction) {
-    var raw = round2(rawFraction * 100);
+    var raw = Math.max(0, round2(rawFraction * 100));
     return { percent: Math.max(0, Math.min(100, Math.round(raw))), percentRaw: raw };
   }
 
@@ -1675,8 +1684,9 @@ window.GT_CONFIG = {
     return best ? best.value : goal.startValue;
   }
 
+  // Сколько осталось до цели: не меньше 0, при перевыполнении 0.
   function remaining(goal, value) {
-    return goal.direction === 'growth' ? goal.targetValue - value : value - goal.targetValue;
+    return Math.max(0, goal.direction === 'growth' ? goal.targetValue - value : value - goal.targetValue);
   }
 
   // Прогресс к цели 0..1 (без ограничения): откат даёт < 0, перевыполнение > 1.
@@ -1836,7 +1846,8 @@ window.GT_CONFIG = {
         o = o || {};
         var x = p[f];
         if (x == null) { if (!o.optional) v.bad(f, 'required'); return undefined; }
-        if (typeof x !== 'number' || !isFinite(x) || Math.abs(x) > 1e12) { v.bad(f, 'bad_format'); return undefined; }
+        if (typeof x !== 'number' || !isFinite(x)) { v.bad(f, 'bad_format'); return undefined; }
+        if (Math.abs(x) > 1e9) { v.bad(f, 'out_of_range'); return undefined; }
         if ((o.min != null && x < o.min) || (o.gt != null && x <= o.gt)) { v.bad(f, 'out_of_range'); return undefined; }
         return x;
       },
@@ -2257,12 +2268,12 @@ window.GT_CONFIG = {
     var rows = (p.facts || []).map(function (f, i) {
       var key = 'facts[' + i + ']';
       if (!f || typeof f.actionId !== 'string') { v.bad(key + '.actionId', 'required'); return null; }
-      if (f.value !== null && !(typeof f.value === 'number' && isFinite(f.value) && f.value >= 0 && f.value <= 1e12)) { v.bad(key + '.value', 'out_of_range'); return null; }
+      if (f.value !== null && !(typeof f.value === 'number' && isFinite(f.value) && f.value >= 0 && f.value <= 1e9)) { v.bad(key + '.value', 'out_of_range'); return null; }
       if (seen[f.actionId]) { v.bad(key + '.actionId', 'bad_format'); return null; }
       seen[f.actionId] = true;
       return f;
     });
-    if (p.progress != null && !(typeof p.progress.value === 'number' && isFinite(p.progress.value) && Math.abs(p.progress.value) <= 1e12)) v.bad('progress.value', 'bad_format');
+    if (p.progress != null && !(typeof p.progress.value === 'number' && isFinite(p.progress.value) && Math.abs(p.progress.value) <= 1e9)) v.bad('progress.value', 'out_of_range');
     v.done();
     var acts = rows.map(function (f) { return ownAction(ctx, f.actionId); }); // атомарно: сначала все проверки
     acts.forEach(function (a) { if (a.goalId !== goal.id || a.status !== 'active') throw fail('not_found'); });
@@ -3651,6 +3662,7 @@ window.GT_CONFIG = {
     var queued = 0;          // сколько запросов поставлено в очередь и ещё не завершено
     var saveInFlight = null; // промис «Сохранить» в пути: второе нажатие запроса не отправляет
     var loadToken = 0;
+    var percentToken = 0;    // номер фонового today.get за процентом цели: устаревший ответ игнорируется
     var changeSeq = 0;       // порядковый номер пользовательских изменений
     var lastChange = {};     // actionId → номер последнего изменения пользователем (ответ сервера не должен затирать более новое)
     var lastProgressChange = 0;
@@ -3738,6 +3750,7 @@ window.GT_CONFIG = {
       d.actions.forEach(function (a) { a.value = nv(s.base.values[a.id]); a.done = a.value !== null && a.value >= a.norm; });
       d.progress.value = s.base.progress;
       d.goal.currentValue = goalTotal();
+      if (s.progressPercentRaw != null) { d.goal.percentRaw = s.progressPercentRaw; d.goal.percent = Math.max(0, Math.min(100, Math.round(s.progressPercentRaw))); }
       if (s.day) {
         d.dayEntered = s.day.dayEntered;
         var mid = myMemberId();
@@ -3761,6 +3774,7 @@ window.GT_CONFIG = {
       data.actions.forEach(function (a) { s.base.values[a.id] = a.value; s.values[a.id] = a.value; });
       s.progress = { value: data.progress.value };
       s.progressTotal = null;
+      s.progressPercentRaw = null; percentToken++;
       s.markers = {};
       s.undo = null;
       if (undoTimer) { o.cancel(undoTimer); undoTimer = null; }
@@ -3832,14 +3846,20 @@ window.GT_CONFIG = {
     // Итог цели на сервере: из ответа day.save, иначе из today.get.
     function goalTotal() { return s.progressTotal != null ? s.progressTotal : s.data.goal.currentValue; }
 
-    // Итог относительно цели (по direction: 'growth' | 'decline'): 'over' — строго за целью, 'reached' — ровно цель, иначе null.
-    // Сводка цели пишет «цель перевыполнена» / «цель достигнута» вместо «осталось K».
-    function goalStatus(direction) {
-      if (!s.data) return null;
-      var total = goalTotal();
-      var target = s.data.goal.targetValue;
-      if (total === target) return 'reached';
-      return (direction === 'decline' ? total < target : total > target) ? 'over' : null;
+    // Процент цели (percentRaw, api.md §1): из today.get; после day.save с progress — из ответа (если там есть) или из фонового today.get.
+    // До его ответа остаётся прежнее число. Своей формулы в web нет.
+    function goalPercentRaw() { return s.progressPercentRaw != null ? s.progressPercentRaw : s.data.goal.percentRaw; }
+
+    function refreshGoalPercent() {
+      var token = ++percentToken;
+      var date = s.date;
+      var goalId = s.data.goal.id;
+      o.call('today.get', { date: date }).then(function (res) {
+        if (token !== percentToken || !res.ok || !s.data || s.data.goal.id !== goalId || s.date !== date) return;
+        s.progressPercentRaw = res.data.goal.percentRaw;
+        reportServer();
+        settle();
+      }, function () {});
     }
 
     function setStale(v) { s.stale = !!v; notify(); changed(); }
@@ -3889,6 +3909,7 @@ window.GT_CONFIG = {
         s.base.progress = res.data.progress.value;
         if (!(lastProgressChange > seq)) s.progress = { value: res.data.progress.value };
         s.progressTotal = res.data.progress.currentValue;
+        if (typeof res.data.progress.percentRaw === 'number') { ++percentToken; s.progressPercentRaw = res.data.progress.percentRaw; } else refreshGoalPercent();
       }
       applyDay(res);
     }
@@ -4028,10 +4049,10 @@ window.GT_CONFIG = {
     }
     function stepProgress(dir, step) {
       var cur = s.progress ? s.progress.value : 0;
-      setProgress(Math.max(s.data.progress.inputMode === 'delta' ? -1e12 : 0, F.addStep(cur, dir * step)));
+      setProgress(Math.max(s.data.progress.inputMode === 'delta' ? -F.MAX_NUM : 0, F.addStep(cur, dir * step)));
     }
 
-    // «Сохранить» (MainButton): один day.save со всем днём — значения всех действий (не внесённое уходит как null) и прогресс, если менялся.
+    // «Сохранить» (MainButton): один day.save только с изменёнными фактами (api.md §11, 11a); null — «убрать запись»; прогресс — если менялся.
     // Пока запрос идёт, повторное нажатие второй запрос не отправляет. Пока данные обновляются (stale), не сохраняем.
     function save() {
       flushInput();
@@ -4130,7 +4151,7 @@ window.GT_CONFIG = {
 
     function isRetryable() { return !!failed && !!s.error && !!RETRYABLE[s.error.code]; }
 
-    // «Повторить»: тот же запрос с тем же requestId — только если после него ничего не менялось; иначе уходит актуальный день целиком.
+    // «Повторить»: тот же запрос с тем же requestId — только если после него ничего не менялось; иначе уходит актуальный день (изменённые факты и прогресс).
     function retry() {
       if (!failed) return save();
       var f = failed;
@@ -4155,7 +4176,7 @@ window.GT_CONFIG = {
     return { state: s, load: load, open: open, resume: resume, adoptBoot: adoptBoot, setStale: setStale, refresh: refresh, plus: plus, minus: minus, setExact: setExact,
       toggleNorm: toggleNorm, isNormMarked: isNormMarked, isDone: isDone, isRowDirty: isRowDirty, idle: function () { return q.idle(); },
       save: save, press: press, completeAll: completeAll, finish: finish, undo: undo, discard: discard, retry: retry, ui: ui,
-      forget: forget, rejected: rejected, clearRejected: clearRejected, goalTotal: goalTotal, goalStatus: goalStatus, value: value, summary: summary, entered: entered, allEntered: allEntered, anyBelowNorm: anyBelowNorm, setProgress: setProgress,
+      forget: forget, rejected: rejected, clearRejected: clearRejected, goalTotal: goalTotal, goalPercentRaw: goalPercentRaw, value: value, summary: summary, entered: entered, allEntered: allEntered, anyBelowNorm: anyBelowNorm, setProgress: setProgress,
       stepProgress: stepProgress, hasDraft: dirty, isRetryable: isRetryable, serverView: serverView, bind: bind, leave: leave };
   }
 
@@ -5250,7 +5271,7 @@ window.GT_CONFIG = {
     // итог периода: один dashboard.get
     function fill(d) {
       var p = d.progress;
-      sum.textContent = t('outOfPeriod.summary', { cur: F.num(p.currentValue), target: F.num(p.targetValue), unit: d.goal.unit, p: p.percent });
+      sum.textContent = t('outOfPeriod.summary', { cur: F.num(p.currentValue), target: F.num(p.targetValue), unit: d.goal.unit, p: F.pct(p.percentRaw) });
     }
     var rd = env.read(env.readSpec.dashboard(g.id)); // сохранённый итог сразу, свежий подменяет его
     if (rd.cached) { fill(rd.cached.data); rd.shown(); }
@@ -5328,7 +5349,7 @@ window.GT_CONFIG = {
       var d = s().data;
       var date = s().date;
       var cur = ctrl.goalTotal();
-      var status = ctrl.goalStatus(goalBrief && goalBrief.direction);
+      var pctRaw = ctrl.goalPercentRaw();
       var rem = goalBrief && goalBrief.direction === 'decline' ? cur - d.goal.targetValue : d.goal.targetValue - cur;
       var best = 0;
       d.actions.forEach(function (a) { if (a.streak > best) best = a.streak; });
@@ -5337,7 +5358,7 @@ window.GT_CONFIG = {
       var next = U.button('→', function () { go(env.D.addDays(date, 1)); }, { secondary: true, aria: t('today.nextDay'), disabled: date >= today });
       return h('section', { class: 'blk day-head' },
         h('div', { class: 'row between' }, prev, h('strong', { text: label }), next),
-        h('p', { class: 'goal-line', text: t(status === 'over' ? 'today.goalLineOver' : status === 'reached' ? 'today.goalLineReached' : 'today.goalLine', { cur: F.num(cur), target: F.num(d.goal.targetValue), unit: d.goal.unit,
+        h('p', { class: 'goal-line', text: t(Math.floor(pctRaw + 1e-9) < 100 ? 'today.goalLine' : 'today.goalLineDone', { cur: F.num(cur), target: F.num(d.goal.targetValue), unit: d.goal.unit, p: F.pct(pctRaw),
           rem: F.num(Math.max(0, rem)), days: d.goal.daysLeft, daysWord: F.plural(d.goal.daysLeft, [t('today.day1'), t('today.day2'), t('today.day5')]) }) }),
         best > 0 ? h('p', { class: 'hint', text: t('today.streak', { n: best }) }) : null);
     }
@@ -5744,11 +5765,11 @@ window.GT_CONFIG = {
       var g = d.goal;
       var p = d.progress;
       box.appendChild(h('h2', { text: t('review.dashboard') }));
-      // v8: один контейнер, блоки через линию. Все подписи — из полей dashboard.get (progress.percent/remaining), без пересчёта в приложении
+      // v8: один контейнер, блоки через линию. Подписи — из полей dashboard.get: число процента из progress.percentRaw, полоса по progress.percent, remaining; без пересчёта в приложении
       var panel = h('div', { class: 'panel' });
       panel.appendChild(h('section', { class: 'blk top' },
         h('div', { class: 'num hero', text: F.num(p.currentValue) }),
-        h('div', { class: 'hero-of', text: t('review.ofTarget', { target: F.num(p.targetValue), unit: g.unit, p: p.percent }) }),
+        h('div', { class: 'hero-of', text: t('review.ofTarget', { target: F.num(p.targetValue), unit: g.unit, p: F.pct(p.percentRaw) }) }),
         h('div', { class: 'bar' }, h('i', { style: 'width:' + Math.max(0, Math.min(100, p.percent)) + '%' })),
         h('div', { class: 'split' }, h('span', { text: t('review.remaining', { rem: F.num(Math.max(0, p.remaining)), unit: g.unit }) }), h('span', { text: F.period(g.startDate, g.endDate) }))));
 
@@ -5814,7 +5835,7 @@ window.GT_CONFIG = {
             h('span', { class: it.outcome === 'success' ? 'res' : 'res muted', text: outcomeText(env, it.outcome) })),
           h('span', { class: 'sub', text: F.period(it.startDate, it.endDate) }),
           h('span', { class: 'hist-num' }, h('span', { class: 'num', text: F.num(it.finalValue) }),
-            h('span', { class: 'muted small', text: t('review.ofTarget', { target: F.num(it.targetValue), unit: it.unit, p: it.percent }) })),
+            h('span', { class: 'muted small', text: t('review.ofTarget', { target: F.num(it.targetValue), unit: it.unit, p: F.pct(it.percentRaw) }) })),
           it.reflectionPreview ? h('span', { class: 'quote', text: it.reflectionPreview }) : null));
       });
       if (data.nextCursor) more.appendChild(env.U.button(t('review.more'), function () { load(data.nextCursor); }, { secondary: true }));
@@ -5858,7 +5879,7 @@ window.GT_CONFIG = {
     var t = env.t;
     return h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('review.result') }),
       h('p', { class: 'big', text: outcomeText(env, r.outcome) }),
-      h('p', { text: t('review.final', { v: env.F.num(r.finalValue), unit: g.unit }) + ' · ' + r.percent + ' %' }),
+      h('p', { text: t('review.final', { v: env.F.num(r.finalValue), unit: g.unit }) + ' · ' + env.F.pct(r.percentRaw) + ' %' }),
       h('p', { text: t('review.planFactPct', { p: r.planFactPercent }) }),
       h('p', { text: t('review.bestStreak', { n: r.bestStreak }) }));
   }
@@ -6179,6 +6200,9 @@ window.GT_CONFIG = {
       busy = h('div', { class: 'busy', hidden: true }, U.spinner());
       env.setBack(keep); // BackButton = «Продолжить как есть»; сбрасывается самим приложением при смене экрана
       var panel = h('div', { class: 'panel' });
+      // 11a: число из bootstrap.today.goal.percentRaw; строки нет, если поля нет (today = null вне периода)
+      var bt = env.boot().today;
+      var pctRaw = bt && bt.goal && typeof bt.goal.percentRaw === 'number' ? bt.goal.percentRaw : null;
       var finishBtn = U.button(t('reached.finish'), function () {
         U.confirmDialog(t('reached.confirm'), t('reached.finish')).then(function (ok) {
           if (!ok || finishBtn.disabled) return;
@@ -6196,6 +6220,7 @@ window.GT_CONFIG = {
       panel.appendChild(h('section', { class: 'blk' },
         h('h2', { text: t('reached.title') }),
         h('p', { text: t('reached.text', { title: goal.title }) }),
+        pctRaw != null ? h('p', { class: 'reached-percent', text: t('reached.percent', { p: env.F.pct(pctRaw) }) }) : null,
         h('div', { class: 'stack' }, finishBtn, raiseBtn, keepBtn),
         busy,
         h('p', { class: 'sub', text: t('reached.hint') })));
