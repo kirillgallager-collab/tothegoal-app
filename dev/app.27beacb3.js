@@ -23,6 +23,7 @@ window.GT_CONFIG = {
 
     common: {
       retry: 'Повторить',
+      tooBig: 'Слишком большое число',
       close: 'Закрыть',
       loading: 'Загружаем…',
       help: 'Справка',
@@ -130,7 +131,7 @@ window.GT_CONFIG = {
       refreshing: 'Данные обновляются…', cachedOffline: 'Нет связи. Показаны сохранённые данные, сохранить пока нельзя.',
       errBannerRetry: 'Не удалось сохранить. {reason} Всё введённое осталось на экране.',
       errBannerHard: 'Не удалось сохранить: {reason} Это не исправить повтором, экран можно обновить.', refresh: 'Обновить экран',
-      progressNow: 'Сколько сейчас', progressAdded: 'Сколько добавилось', progressLess: 'Меньше', progressMore: 'Больше',
+      progressNow: 'Сколько сейчас', progressAdded: 'Сколько добавилось', progressLess: 'Меньше', progressMore: 'Больше', overTarget: 'Цель перевыполнена',
       summary: 'Выполнено {done} из {total} · {p} %', dayEntered: 'День внесён ✓', entered: 'Внесено {k} из {m} действий',
       other: '{name}: {done} из {total} · {state}', otherEntered: 'внёс', otherNot: 'ещё нет',
       tasks: 'Разовые задачи', noTasks: 'Задач на сегодня нет.', overdue: 'просрочено', addTask: '+ Задача',
@@ -483,7 +484,11 @@ window.GT_CONFIG = {
     return Math.round((value + step) * 1e6) / 1e6;
   }
 
-  var api = { num: num, delta: delta, plural: plural, dayLong: dayLong, dayShort: dayShort, dateFull: dateFull, period: period,
+  // Предел чисел в полях ввода (по модулю): строже контракта (1e12), чтобы опечатка вроде 15 000 055 677 не уходила на сервер
+  var MAX_NUM = 1e9;
+  function tooBig(x) { return typeof x === 'number' && Math.abs(x) > MAX_NUM; }
+
+  var api = { MAX_NUM: MAX_NUM, tooBig: tooBig, num: num, delta: delta, plural: plural, dayLong: dayLong, dayShort: dayShort, dateFull: dateFull, period: period,
     tzLabel: tzLabel, utcOffset: utcOffset, TZ_NAMES: TZ_NAMES, progressStep: progressStep, addStep: addStep };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.GT = root.GT || {}; root.GT.format = api; }
@@ -3516,8 +3521,9 @@ window.GT_CONFIG = {
 //
 // МОДЕЛЬ. Нажатия «−», «+», «Норма выполнена», ввод числа и прогресс цели меняют ТОЛЬКО экран (черновик): запросов нет.
 // Черновик (отличия экрана от того, что на сервере) хранится в localStorage по кабинету, цели и дате (createStore: чтение и запись
-// в try/catch, если localStorage недоступен — живёт в памяти страницы). Несохранённое уходит одним day.save со всем днём
-// (save: кнопка Telegram MainButton «Сохранить»). «Все нормы выполнены» и «Готово на сегодня» сохраняют сразу: несохранённые
+// в try/catch, если localStorage недоступен — живёт в памяти страницы). Несохранённое уходит одним day.save
+// (save: кнопка Telegram MainButton «Сохранить»; в запрос идут только изменённые факты и прогресс, чтобы устаревшая копия дня
+// в другом экземпляре не затирала чужие правки). «Все нормы выполнены» и «Готово на сегодня» сохраняют сразу: несохранённые
 // facts и progress едут в том же запросе. «Отменить» после «Все нормы» возвращает прежние значения через day.save.
 //
 // ЗАПИСЬ (day.save, day.completeAll, day.finish) — правила, потому что сервер не хранит журнал повторов для этих методов:
@@ -3578,6 +3584,8 @@ window.GT_CONFIG = {
         mem[key] = v;
         try { var s = st(); if (s) s.setItem(pre + key, JSON.stringify(v)); } catch (e) { /* остаётся в памяти страницы */ }
       },
+      // Забыть копию в памяти: следующее чтение берёт значение из localStorage (его изменил другой экземпляр Mini App)
+      drop: function (key) { delete mem[key]; },
       remove: function (key) {
         mem[key] = null;
         try { var s = st(); if (s) s.removeItem(pre + key); } catch (e) { /* остаётся в памяти страницы */ }
@@ -3626,6 +3634,10 @@ window.GT_CONFIG = {
     var changeSeq = 0;       // порядковый номер пользовательских изменений
     var lastChange = {};     // actionId → номер последнего изменения пользователем (ответ сервера не должен затирать более новое)
     var lastProgressChange = 0;
+    // Что пользователь менял и сервер ещё не подтвердил: уходит в day.save, даже если значение вернулось к известному серверному
+    // (иначе «10, потом обратно» при запросе в пути оставило бы на сервере 10). Очищается ответом ok на запрос, отправленный после правки.
+    var unsent = {};         // actionId → true
+    var progressUnsent = false;
     var touched = {};        // ключ черновика → правили в этой сессии (тогда это не «найденный при открытии»)
     var seen = {};           // ключ черновика → уже показывали
     var undoTimer = null;
@@ -3636,14 +3648,15 @@ window.GT_CONFIG = {
     function actions() { return s.data ? s.data.actions : []; }
     function byId(id) { return actions().filter(function (a) { return a.id === id; })[0]; }
     function bump() { return ++changeSeq; }
-    function touch(id) { lastChange[id] = bump(); }
+    function touch(id) { lastChange[id] = bump(); unsent[id] = true; }
     function myMemberId() { return typeof o.myMemberId === 'function' ? o.myMemberId() : o.myMemberId; }
     function keyOf(date) { return (o.scope ? o.scope() : '') + ':' + s.data.goal.id + ':' + date; }
 
     // ---------- черновик: чем экран отличается от сервера ----------
     function value(id) { var v = s.values[id]; return v === undefined ? null : v; }
     function dirtyIds() { return actions().filter(function (a) { return value(a.id) !== nv(s.base.values[a.id]); }).map(function (a) { return a.id; }); }
-    function progressDirty() { return !!s.progress && s.progress.value !== s.base.progress; }
+    // Прогресс изменён: число отличается от серверного ИЛИ человек вводил его и сервер ещё не подтвердил (ввод «0» при серверном 0 — тоже запись)
+    function progressDirty() { return !!s.progress && (progressUnsent || s.progress.value !== s.base.progress); }
     function dirty() { return !!s.data && (dirtyIds().length > 0 || progressDirty()); }
     function isRowDirty(id) { return value(id) !== nv(s.base.values[id]); }
 
@@ -3712,11 +3725,12 @@ window.GT_CONFIG = {
       s.values = {};
       data.actions.forEach(function (a) { s.base.values[a.id] = a.value; s.values[a.id] = a.value; });
       s.progress = { value: data.progress.value };
+      s.progressTotal = null;
       s.markers = {};
       s.undo = null;
       if (undoTimer) { o.cancel(undoTimer); undoTimer = null; }
       failed = null;
-      lastChange = {}; lastProgressChange = 0; changeSeq = 0;
+      lastChange = {}; lastProgressChange = 0; changeSeq = 0; unsent = {}; progressUnsent = false;
       var mid = myMemberId();
       var me = data.members.filter(function (m) { return m.id === mid; })[0] || data.members[0];
       s.day = me ? { doneCount: me.doneCount, totalCount: me.totalCount, percent: me.percent, percentRaw: me.percentRaw, dayEntered: data.dayEntered } : null;
@@ -3725,7 +3739,7 @@ window.GT_CONFIG = {
       var d = drafts.get(k);
       if (d && d.facts) {
         Object.keys(d.facts).forEach(function (id) { if (id in s.values) s.values[id] = d.facts[id]; });
-        if (d.progress != null) s.progress = { value: d.progress };
+        if (d.progress != null) { s.progress = { value: d.progress }; progressUnsent = true; }
         if (!dirty()) drafts.remove(k);
         else if (!touched[k] && !seen[k]) s.restored = data.date; // черновик с прошлого раза: предложить «Сохранить» или «Отбросить»
         seen[k] = true;
@@ -3762,6 +3776,14 @@ window.GT_CONFIG = {
       return load(date || undefined);
     }
 
+    // Mini App снова на переднем плане (или другой экземпляр записал в общее хранилище): день без правок и запросов в пути
+    // перезагружается, если ему больше 60 с (opts.force — без проверки возраста). Иначе устаревшая копия показывала бы старые значения.
+    function resume(opts) {
+      if (!s.data || dirty() || queued > 0 || s.stale) return Promise.resolve(null);
+      if (!(opts && opts.force) && now() - s.loadedAt < 60000) return Promise.resolve(null);
+      return load(s.date);
+    }
+
     // Данные «Сегодня» из ответа app.bootstrap (или из кэша): принять без запроса. Пока идёт запись, ответ сервера может быть старше неё — пропускаем.
     function adoptBoot(today) {
       if (!today) { if (queued === 0) { s.data = null; } return false; }
@@ -3770,6 +3792,15 @@ window.GT_CONFIG = {
       applyServer(today);
       settle();
       return true;
+    }
+
+    // Итог цели строго за целью (по direction: 'growth' | 'decline'), день сохранён и S-40 уже не ожидается (он показывается один раз):
+    // экран пишет «Цель перевыполнена» вместо молчания. Итог — из ответа day.save, иначе из today.get.
+    function overTarget(direction) {
+      if (!s.data || dirty() || queued > 0 || s.goalReached) return false;
+      var total = s.progressTotal != null ? s.progressTotal : s.data.goal.currentValue;
+      var target = s.data.goal.targetValue;
+      return direction === 'decline' ? total < target : total > target;
     }
 
     function setStale(v) { s.stale = !!v; notify(); changed(); }
@@ -3849,6 +3880,8 @@ window.GT_CONFIG = {
         if (res.ok) {
           failed = null;
           absorbOk(res, seq);
+          Object.keys(unsent).forEach(function (id) { if (!(lastChange[id] > seq)) delete unsent[id]; });
+          if (!(lastProgressChange > seq)) progressUnsent = false;
           if (onOk) onOk(res);
           return res;
         }
@@ -3905,9 +3938,12 @@ window.GT_CONFIG = {
       setValueLocal(id, Math.max(0, F.addStep(v, -a.step)));
     }
     // Точное число: нажатие на число, ввод, «Готово» — 2 нажатия + цифры (число нажатий считаем здесь: 2).
+    // Возвращает false, если число выше предела F.MAX_NUM (черновик не меняется, экран покажет «Слишком большое число»).
     function setExact(id, v) {
       s.taps += 2;
+      if (F.tooBig(v)) return false;
       if (v === null || (typeof v === 'number' && isFinite(v) && v >= 0)) setValueLocal(id, v);
+      return true;
     }
     // «Норма выполнена»; повторное нажатие возвращает прежнее значение.
     function toggleNorm(id) {
@@ -3930,11 +3966,14 @@ window.GT_CONFIG = {
     function isDone(id) { var a = byId(id); var v = value(id); return !!a && v !== null && v >= a.norm; }
 
     function setProgress(v) {
+      if (F.tooBig(v)) return false;
       s.taps++;
       clearUndo();
       lastProgressChange = bump();
+      progressUnsent = true;
       s.progress = { value: v };
       mutated();
+      return true;
     }
     function stepProgress(dir, step) {
       var cur = s.progress ? s.progress.value : 0;
@@ -3950,7 +3989,8 @@ window.GT_CONFIG = {
       s.taps++;
       s.restored = null;
       failed = null;
-      var params = { goalId: s.data.goal.id, date: s.date, facts: actions().map(function (a) { return { actionId: a.id, value: value(a.id) }; }) };
+      var ids = actions().filter(function (a) { return unsent[a.id] || value(a.id) !== nv(s.base.values[a.id]); }).map(function (a) { return a.id; });
+      var params = { goalId: s.data.goal.id, date: s.date, facts: ids.map(function (id) { return { actionId: id, value: value(id) }; }) };
       if (progressDirty()) params.progress = { value: s.progress.value };
       var p = send('day.save', params, undefined, null);
       var clear = function () { if (saveInFlight === p) saveInFlight = null; };
@@ -4057,10 +4097,10 @@ window.GT_CONFIG = {
     function bind(h) { handlers = { onChange: h.onChange, onGoalReached: h.onGoalReached, onError: h.onError }; }
     function leave() { handlers = {}; }
 
-    return { state: s, load: load, open: open, adoptBoot: adoptBoot, setStale: setStale, refresh: refresh, plus: plus, minus: minus, setExact: setExact,
+    return { state: s, load: load, open: open, resume: resume, adoptBoot: adoptBoot, setStale: setStale, refresh: refresh, plus: plus, minus: minus, setExact: setExact,
       toggleNorm: toggleNorm, isNormMarked: isNormMarked, isDone: isDone, isRowDirty: isRowDirty, idle: function () { return q.idle(); },
       save: save, press: press, completeAll: completeAll, finish: finish, undo: undo, discard: discard, retry: retry, ui: ui,
-      forget: forget, value: value, summary: summary, entered: entered, allEntered: allEntered, anyBelowNorm: anyBelowNorm, setProgress: setProgress,
+      forget: forget, overTarget: overTarget, value: value, summary: summary, entered: entered, allEntered: allEntered, anyBelowNorm: anyBelowNorm, setProgress: setProgress,
       stepProgress: stepProgress, hasDraft: dirty, isRetryable: isRetryable, serverView: serverView, bind: bind, leave: leave };
   }
 
@@ -4147,6 +4187,8 @@ window.GT_CONFIG = {
     var okNum = function (x) { return typeof x === 'number' && isFinite(x); };
     if (!okNum(draft.startValue)) e.startValue = 'required';
     if (!okNum(draft.targetValue)) e.targetValue = 'required';
+    if (F.tooBig(draft.startValue)) e.startValue = 'tooBig';
+    if (F.tooBig(draft.targetValue)) e.targetValue = 'tooBig';
     if (!e.startValue && !e.targetValue) {
       if (draft.startValue === draft.targetValue) e.targetValue = 'same';
       else if (draft.direction === 'growth' && draft.targetValue < draft.startValue) e.targetValue = 'direction';
@@ -4158,7 +4200,9 @@ window.GT_CONFIG = {
     draft.actions.forEach(function (a, i) {
       if (!a.title || !a.title.trim()) e['actions.' + i + '.title'] = 'required';
       if (!(a.startNorm > 0)) e['actions.' + i + '.startNorm'] = 'required';
+      if (F.tooBig(a.startNorm)) e['actions.' + i + '.startNorm'] = 'tooBig';
       if (a.normCeiling != null && !(a.normCeiling >= 1)) e['actions.' + i + '.normCeiling'] = 'range';
+      else if (F.tooBig(a.normCeiling)) e['actions.' + i + '.normCeiling'] = 'tooBig';
     });
     return e;
   }
@@ -4822,7 +4866,7 @@ window.GT_CONFIG = {
   var W = root.GT.wizardLogic;
 
   var ERR = { required: 'wizard.err.required', too_long: 'wizard.err.tooLong', same: 'wizard.err.same', direction: 'wizard.err.direction',
-    period: 'wizard.err.period', limit: 'wizard.err.limit', range: 'wizard.err.range', out_of_range: 'wizard.err.range', bad_format: 'wizard.err.required' };
+    period: 'wizard.err.period', limit: 'wizard.err.limit', range: 'wizard.err.range', tooBig: 'common.tooBig', out_of_range: 'wizard.err.range', bad_format: 'wizard.err.required' };
 
   // params.repeat — «Повторить эту цель» (S-33): мастер сразу на шаге 2, заполненный из repeat
   screens.wizard = function (env, params) {
@@ -4898,7 +4942,7 @@ window.GT_CONFIG = {
       title.addEventListener('change', function () { a.title = title.value; refresh(); step2(true); });
       var unit = h('input', { type: 'text', value: a.unit, class: 'unit', 'aria-label': t('wizard.actionUnit'), placeholder: t('wizard.actionUnit') });
       unit.addEventListener('change', function () { a.unit = unit.value; });
-      var norm = U.numberInput(a.startNorm, function (v) { if (v > 0) a.startNorm = v; step2(true); }, { aria: t('wizard.norm'), class: 'num' });
+      var norm = U.numberInput(a.startNorm, function (v) { if (v > 0) a.startNorm = v; refresh(); step2(true); }, { aria: t('wizard.norm'), class: 'num' });
       var ceil = U.numberInput(a.normCeiling, function (v) { a.normCeiling = v; refresh(); step2(true); }, { aria: t('wizard.ceiling'), class: 'num' });
       var lag = h('input', { type: 'checkbox', checked: !!a.growsOnLag });
       lag.addEventListener('change', function () { a.growsOnLag = lag.checked; });
@@ -4911,6 +4955,7 @@ window.GT_CONFIG = {
           U.button('−', function () { W.stepNorm(a, -1); step2(true); }, { aria: t('wizard.less') }),
           norm, unit,
           U.button('+', function () { W.stepNorm(a, 1); step2(true); }, { aria: t('wizard.more') })),
+        errText('actions.' + i + '.startNorm') ? h('p', { class: 'field-error', text: errText('actions.' + i + '.startNorm') }) : null,
         h('details', null, h('summary', { text: t('wizard.advanced') }),
           U.field(t('wizard.ceiling'), ceil, t('wizard.ceilingHint'), errText('actions.' + i + '.normCeiling')),
           h('label', { class: 'check' }, lag, h('span', { text: t('wizard.growsOnLag') }))));
@@ -5168,7 +5213,13 @@ window.GT_CONFIG = {
     var left = env.left();   // вышедший участник: только чтение, записей нет (контракт 10.2: me.left)
     var ro = env.readOnly() || left;
     var box = h('div', { class: 'today' });
-    var editing = null;     // actionId, у которого сейчас открыт ввод числа
+    var bigErr = null;      // 'progress' или actionId: введено число выше предела; следующая перерисовка покажет ошибку под полем один раз
+    var bigShown = null;    // то же на время текущей перерисовки
+    var progEditing = false; // поле «Сколько сейчас» в фокусе: перерисовки экрана нет
+    var progInput = null;
+    var progTimer = null;   // пауза ввода перед фиксацией числа
+    var editTimer = null;
+    var editing = null;    // actionId, у которого сейчас открыт ввод числа
     var statusEl = null;
     var highlightDone = false;
     var me = env.myMember();
@@ -5240,12 +5291,23 @@ window.GT_CONFIG = {
     function commitEdit(a, input, cancel) {
       if (editing !== a.id) return;
       editing = null;
+      if (editTimer) { env.cancel(editTimer); editTimer = null; }
       var raw = input.value.trim();
       if (!cancel && raw !== '') {
         var v = U.parseNum(raw);
-        if (v !== null && v >= 0) ctrl.setExact(a.id, v);
+        if (v !== null && v >= 0 && v !== ctrl.value(a.id) && ctrl.setExact(a.id, v) === false) bigErr = a.id;
       }
       draw();
+      focusBig();
+    }
+
+    // Ошибка «Слишком большое число» под полем: фокус на поле и прокрутка к нему (как U.focusError)
+    function focusBig() {
+      if (!bigShown) return;
+      var host = box.querySelector('.field-error');
+      var el = host && host.parentNode.querySelector('input, button.value');
+      if (el) el.focus({ preventScroll: true });
+      (el || host).scrollIntoView({ block: 'center' });
     }
 
     function editInput(a) {
@@ -5253,6 +5315,15 @@ window.GT_CONFIG = {
       var input = h('input', { type: 'text', inputmode: 'decimal', 'data-edit': a.id, value: v === null ? '' : String(v).replace('.', ','), 'aria-label': a.title });
       input.addEventListener('keydown', function (e) { if (e.key === 'Enter') commitEdit(a, input); if (e.key === 'Escape') commitEdit(a, input, true); });
       input.addEventListener('blur', function () { commitEdit(a, input); });
+      // число фиксируется на паузе ввода, не выходя из поля: «Сохранить» появляется, даже если клавиатуру не закрыли
+      input.addEventListener('input', function () {
+        if (editTimer) env.cancel(editTimer);
+        editTimer = env.schedule(function () {
+          editTimer = null;
+          var v = U.parseNum(input.value);
+          if (editing === a.id && v !== null && v >= 0 && v !== ctrl.value(a.id)) ctrl.setExact(a.id, v);
+        }, 300);
+      });
       return input;
     }
 
@@ -5270,7 +5341,8 @@ window.GT_CONFIG = {
           ro ? null : U.button('−', function () { ctrl.minus(a.id); }, { aria: t('today.less', { title: a.title }) }),
           editing === a.id ? editInput(a) : valueButton(a),
           h('span', { class: 'unit-label', text: a.unit }),
-          ro ? null : U.button('+', function () { ctrl.plus(a.id); }, { aria: t('today.more', { title: a.title }) })));
+          ro ? null : U.button('+', function () { ctrl.plus(a.id); }, { aria: t('today.more', { title: a.title }) })),
+        bigShown === a.id ? h('p', { class: 'field-error', text: t('common.tooBig') }) : null);
     }
 
     // ----- прогресс цели за день -----
@@ -5280,18 +5352,42 @@ window.GT_CONFIG = {
       // шаг «−/+» по оставшемуся диапазону (старта в today.get нет): для прироста за день — масштаб дня, для текущего значения — 1/100 диапазона
       var step = F.progressStep(d.goal.currentValue, d.goal.targetValue, mode === 'delta' ? 30 : 100);
       var val = s().progress ? s().progress.value : 0;
-      var input = h('input', { type: 'text', inputmode: 'decimal', value: String(val).replace('.', ','), disabled: ro, 'aria-label': t(mode === 'current' ? 'today.progressNow' : 'today.progressAdded') });
-      input.addEventListener('change', function () {
+      // пока идёт сохранение (после него может открыться S-40), поле и «−/+» заблокированы, виден индикатор
+      var saving = s().status === 'saving';
+      var input = h('input', { type: 'text', inputmode: 'decimal', value: String(val).replace('.', ','), disabled: ro || saving, 'aria-label': t(mode === 'current' ? 'today.progressNow' : 'today.progressAdded') });
+      // Число фиксируется на паузе ввода (на цифровой клавиатуре iOS нет Enter), на потере фокуса и на Enter. Пока поле в фокусе, экран не
+      // перерисовывается (draw пропускается), иначе поле пересоздалось бы посреди ввода.
+      function commitProgress() {
         var v = U.parseNum(input.value);
-        if (v !== null && (mode === 'delta' || v >= 0)) ctrl.setProgress(v);
-        else draw();
+        if (v === null || (mode !== 'delta' && v < 0)) return;
+        if (s().progress && v === s().progress.value) return;
+        if (ctrl.setProgress(v) === false) bigErr = 'progress';
+      }
+      progInput = input;
+      input.addEventListener('focus', function () { progEditing = true; });
+      input.addEventListener('input', function () {
+        if (progTimer) env.cancel(progTimer);
+        progTimer = env.schedule(function () { progTimer = null; commitProgress(); }, 300);
       });
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') input.blur(); });
+      input.addEventListener('change', commitProgress);
+      input.addEventListener('blur', function () {
+        if (progTimer) { env.cancel(progTimer); progTimer = null; }
+        commitProgress();
+        progEditing = false;
+        draw();
+        focusBig();
+      });
+      var over = !ro && ctrl.overTarget(goalBrief && goalBrief.direction);
       return h('section', { class: 'blk' },
         h('label', null, h('span', { class: 'label', text: t(mode === 'current' ? 'today.progressNow' : 'today.progressAdded') }),
           h('div', { class: 'row stepper' },
-            ro ? null : U.button('−', function () { ctrl.stepProgress(-1, step); }, { aria: t('today.progressLess') }),
+            ro ? null : U.button('−', function () { ctrl.stepProgress(-1, step); }, { aria: t('today.progressLess'), disabled: saving }),
             input, h('span', { class: 'unit-label', text: d.goal.unit }),
-            ro ? null : U.button('+', function () { ctrl.stepProgress(1, step); }, { aria: t('today.progressMore') }))));
+            ro ? null : U.button('+', function () { ctrl.stepProgress(1, step); }, { aria: t('today.progressMore'), disabled: saving }))),
+        saving ? h('div', { class: 'busy' }, U.spinner()) : null,
+        bigShown === 'progress' ? h('p', { class: 'field-error', text: t('common.tooBig') }) : null,
+        over ? h('p', { class: 'hint', text: t('today.overTarget') }) : null);
     }
 
     // ----- итог дня -----
@@ -5328,9 +5424,10 @@ window.GT_CONFIG = {
 
     function draw() {
       if (!s().data) return;
-      if (editing) { updateStatus(); return; }
+      if (editing || (progEditing && progInput && document.activeElement === progInput)) { updateStatus(); return; }
       var d = s().data;
       var scroll = window.scrollY;
+      bigShown = bigErr; bigErr = null;
       box.textContent = '';
       var stale = env.staleState();
       if (stale === 'loading') box.appendChild(h('p', { class: 'notice', text: t('today.refreshing') }));
@@ -5885,6 +5982,7 @@ window.GT_CONFIG = {
         var v = U.parseNum(target.value);
         err.hidden = true; apply.disabled = true; preview.hidden = true;
         if (v === null || v === g.targetValue) return;
+        if (F.tooBig(v)) { err.textContent = t('common.tooBig'); err.hidden = false; return; }
         var p = { goalId: g.id, newTarget: v };
         if (end.value && end.value !== g.endDate && env.D.isDate(end.value)) p.newEndDate = end.value;
         env.call('goal.raiseBar.preview', p).then(function (r) {
@@ -5953,19 +6051,30 @@ window.GT_CONFIG = {
     var goal = env.boot().activeGoal;
     var box = h('div');
     var keeping = false; // «Продолжить как есть» уже отправлено: повторное нажатие (кнопка или BackButton) второй запрос не шлёт
+    var btns = [];       // три кнопки основного вида: на время запроса блокируются, под ними индикатор
+    var busy = null;
+
+    function setBusy(on) {
+      btns.forEach(function (b) { b.disabled = on; });
+      if (busy) busy.hidden = !on;
+    }
 
     // «Продолжить как есть» = закрытие экрана без выбора (screens.md §3.8)
     function keep() {
       if (keeping) return;
       keeping = true;
+      setBusy(true);
       env.call('goal.dismissReached', { goalId: goal.id }).then(function (r) {
-        if (r.ok) env.reboot();
-        else { keeping = false; env.fail(r); }
+        if (!r.ok) { keeping = false; setBusy(false); env.fail(r); return; }
+        // экран заменяет сам reboot; если он не удался, кнопки снова доступны
+        return Promise.resolve(env.reboot()).then(function () { keeping = false; setBusy(false); }, function () { keeping = false; setBusy(false); });
       });
     }
 
     function main() {
       box.textContent = '';
+      btns = [];
+      busy = h('div', { class: 'busy', hidden: true }, U.spinner());
       env.setBack(keep); // BackButton = «Продолжить как есть»; сбрасывается самим приложением при смене экрана
       var panel = h('div', { class: 'panel' });
       var finishBtn = U.button(t('reached.finish'), function () {
@@ -5975,17 +6084,18 @@ window.GT_CONFIG = {
           env.completeGoal(goal.id).then(function (r) { if (!r.ok) { finishBtn.disabled = false; env.fail(r); } });
         });
       });
+      var raiseBtn = U.button(t('reached.raise'), function () {
+        box.textContent = '';
+        env.setBack(main); // внутри «Поднять планку» BackButton = «Отмена»
+        Promise.resolve(screens.raiseBar(env, { goalId: goal.id, onCancel: main })).then(function (el) { box.appendChild(el); });
+      }, { secondary: true });
+      var keepBtn = U.button(t('reached.keep'), keep, { secondary: true });
+      btns = [finishBtn, raiseBtn, keepBtn];
       panel.appendChild(h('section', { class: 'blk' },
         h('h2', { text: t('reached.title') }),
         h('p', { text: t('reached.text', { title: goal.title }) }),
-        h('div', { class: 'stack' },
-          finishBtn,
-          U.button(t('reached.raise'), function () {
-            box.textContent = '';
-            env.setBack(main); // внутри «Поднять планку» BackButton = «Отмена»
-            Promise.resolve(screens.raiseBar(env, { goalId: goal.id, onCancel: main })).then(function (el) { box.appendChild(el); });
-          }, { secondary: true }),
-          U.button(t('reached.keep'), keep, { secondary: true })),
+        h('div', { class: 'stack' }, finishBtn, raiseBtn, keepBtn),
+        busy,
         h('p', { class: 'sub', text: t('reached.hint') })));
       box.appendChild(panel);
     }
@@ -6377,7 +6487,11 @@ window.GT_CONFIG = {
         U.field(t('wizard.ceiling'), ceil, t('wizard.ceilingHint'), errs.normCeiling)));
       panel.appendChild(h('section', { class: 'blk' }, check('growsOnLag', t('wizard.growsOnLag')), check('inPlan', t('actions.inPlan')), check('countStreak', t('actions.countStreak'))));
       var save = U.button(t('settings.save'), function () {
-        save.disabled = true; err.hidden = true;
+        err.hidden = true;
+        var big = {};
+        ['startNorm', 'step', 'normCeiling'].forEach(function (k) { if (env.F.tooBig(v[k])) big[k] = t('common.tooBig'); });
+        if (Object.keys(big).length) { errs = big; draw(); return U.focusError(box); }
+        save.disabled = true;
         var body = { title: v.title.trim(), unit: v.unit.trim(), startNorm: v.startNorm, step: v.step, normCeiling: v.normCeiling,
           growsOnLag: v.growsOnLag, inPlan: v.inPlan, countStreak: v.countStreak };
         var p;
@@ -7131,6 +7245,13 @@ window.GT_CONFIG = {
     if (GT.chrome.tapDismissesKeyboard(e.target, active)) active.blur();
   });
   document.addEventListener('pointercancel', function () { tapStart = null; });
+  // Возврат на передний план и запись другого экземпляра в хранилище черновиков: день без правок перезагружается (today-logic.resume)
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && todayCtrl) todayCtrl.resume(); });
+  window.addEventListener('storage', function (e) {
+    if (!todayCtrl || !e.key || e.key.indexOf('gt:draft:v1:') !== 0) return;
+    draftStore.drop(e.key.slice('gt:draft:v1:'.length));
+    todayCtrl.resume({ force: true });
+  });
   theme.init();
   onDescriptor({ screen: 'loading' });
   startFlow();

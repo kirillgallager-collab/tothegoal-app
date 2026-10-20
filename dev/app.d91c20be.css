@@ -87,6 +87,7 @@ body.slow .loading-text { display: block; }
 
 /* ---- W3: экраны ---- */
 header { gap: 8px; }
+.busy .spinner { margin: 12px auto 0; }
 header h1 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 main { padding-bottom: 24px; }
 h3 { margin: 0 0 8px; font-size: 16px; }
