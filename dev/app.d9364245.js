@@ -162,6 +162,7 @@ window.GT_CONFIG = {
       restDay: 'Сегодня день отдыха — серия не прервётся',
       slip: 'День не удался', slipReason: 'Причина (необязательно)',
       slipRestartText: 'Бывает. {n} {w} никуда не делись — они в истории. Что стало причиной? (необязательно)',
+      slipRestartText0: 'Бывает. Что стало причиной? (необязательно)', slipContinueText0: 'Бывает. Серия начнётся заново.',
       slipRestartNote: 'Сегодня не засчитан, новая попытка начнётся завтра', slipRestart: 'Начать новую попытку',
       slipContinueText: 'Бывает. Серия начнётся заново, {n} {w} остаются в счёте.', slipContinue: 'Продолжить', slipCancel: 'Отмена',
       memberReached: 'Ты дошёл: {done} из {total}. Ждём, когда дойдёт {name}', memberReachedClose: 'Закрыть',
@@ -5929,6 +5930,15 @@ if (typeof module !== 'undefined' && module.exports) {
     env.onLeave(function () { left = true; releaseDone(); });
 
     // ----- M-1 -----
+    function newSentences(note, shown) { // предложения заметки, которых в группе ещё не было ('' — показывать нечего)
+      var parts = (note || '').match(/[^.!?]+(?:[.!?]+|$)/g) || [];
+      return parts.map(function (s) { return s.trim(); }).filter(function (s) {
+        if (!s || shown[s]) return false;
+        shown[s] = true;
+        return true;
+      }).join(' ');
+    }
+
     function step1() {
       onStep1 = true;
       releaseDone();
@@ -5942,20 +5952,25 @@ if (typeof module !== 'undefined' && module.exports) {
       var panel = h('div', { class: 'panel' });
       var section = null;
       var lastGroup = null;
+      var shown = {}; // предложения предупреждений, уже показанные в этой группе: общий абзац не повторяется под каждой карточкой
       presets.forEach(function (p) {
         if (p.group !== lastGroup) { // карточки в порядке ответа, под заголовками групп
           lastGroup = p.group;
-          section = h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('wizard.groups.' + p.group) }));
+          shown = {};
+          section =h('section', { class: 'blk' }, h('h3', { class: 'sec', text: t('wizard.groups.' + p.group) }));
           panel.appendChild(section);
         }
         var off = p.soloOnly && two;
-        section.appendChild(h('button', { type: 'button', class: 'row', disabled: off, onclick: function () { pick(p); } },
+        var item = h('div', { class: 'rows pcard' });
+        item.appendChild(h('button', { type: 'button', class: 'row', disabled: off, onclick: function () { pick(p); } },
           h('span', { class: 'row-main' }, h('strong', { text: p.name }), h('span', { class: 'sub', text: p.about || t('wizard.customHint') }),
             p.soloOnly ? h('span', { class: 'tag', text: t('wizard.soloTag') }) : null),
           h('span', { class: 'v', text: '›' })));
-        if (off) section.appendChild(h('p', { class: 'hint', text: t('wizard.soloDisabled') }));
-        if (p.note) section.appendChild(h('p', { class: 'small', text: p.note }));
-        if (p.link) section.appendChild(h('a', { href: p.link.url, class: 'link', text: p.link.label, onclick: function (e) { e.preventDefault(); env.openLink(p.link.url); } }));
+        if (off) item.appendChild(h('p', { class: 'hint', text: t('wizard.soloDisabled') }));
+        var note = newSentences(p.note, shown);
+        if (note) item.appendChild(h('p', { class: 'small', text: note }));
+        if (p.link) item.appendChild(h('a', { href: p.link.url, class: 'link', text: p.link.label, onclick: function (e) { e.preventDefault(); env.openLink(p.link.url); } }));
+        section.appendChild(item);
       });
       box.appendChild(panel);
     }
@@ -6412,6 +6427,7 @@ if (typeof module !== 'undefined' && module.exports) {
       return h('section', { class: 'blk day-head' },
         h('div', { class: 'row between' }, prev, h('strong', { text: label }), next),
         h('p', { class: 'goal-line', text: t('today.daysHead', { streak: x.streak + ' ' + dw(x.streak), best: x.best, done: x.done, total: x.total }) }),
+        slipBlock(d),
         h('p', { class: 'hint', text: t('today.daysLine', { p: F.pct(d.goal.percentRaw), n: d.goal.daysLeft, w: dw(d.goal.daysLeft) }) }),
         d.isRestDay ? h('p', { class: 'hint', text: t('today.restDay') }) : null,
         mark ? h('p', { class: x.counted ? 'entered ok' : 'hint', text: mark }) : null);
@@ -6421,7 +6437,7 @@ if (typeof module !== 'undefined' && module.exports) {
     function slipBlock(d) {
       if (ro || !details || details.dayThreshold !== null || s().date !== today || d.goal.days.slipped || d.isRestDay) return null;
       var restart = details.onSlip === 'restart';
-      if (!slipOpen) return h('section', { class: 'blk' }, U.button(t('today.slip'), function () { slipOpen = true; draw(); }, { secondary: true }));
+      if (!slipOpen) return U.button(t('today.slip'), function () { slipOpen = true; draw(); }, { secondary: true });
       var n = d.goal.days.done;
       var reason = restart ? h('input', { type: 'text', maxlength: 500, 'aria-label': t('today.slipReason'), placeholder: t('today.slipReason') }) : null;
       var ok = U.button(t(restart ? 'today.slipRestart' : 'today.slipContinue'), function () {
@@ -6434,8 +6450,9 @@ if (typeof module !== 'undefined' && module.exports) {
           go(s().date);
         });
       });
-      return h('section', { class: 'blk' },
-        h('p', { text: t(restart ? 'today.slipRestartText' : 'today.slipContinueText', { n: n, w: dw(n) }) }),
+      var text = n > 0 ? t(restart ? 'today.slipRestartText' : 'today.slipContinueText', { n: n, w: dw(n) }) : t(restart ? 'today.slipRestartText0' : 'today.slipContinueText0');
+      return h('div', { class: 'slip' },
+        h('p', { text: text }),
         reason, restart ? h('p', { class: 'hint', text: t('today.slipRestartNote') }) : null,
         h('div', { class: 'stack' }, ok, U.button(t('today.slipCancel'), function () { slipOpen = false; draw(); }, { secondary: true })));
     }
@@ -6700,8 +6717,7 @@ if (typeof module !== 'undefined' && module.exports) {
         fact.appendChild(U.button(t('today.save'), function () { ctrl.press(); }, { disabled: ui.loading }));
       }
       panel.appendChild(fact);
-      if (d.goal.kind === 'days') { var sb = slipBlock(d); if (sb) panel.appendChild(sb); }
-      else panel.appendChild(progressBlock()); // у цели в днях прогресс — засчитанные дни, вводить нечего (inputMode = auto)
+      if (d.goal.kind !== 'days') panel.appendChild(progressBlock()); // у цели в днях прогресс — засчитанные дни, вводить нечего (inputMode = auto)
       panel.appendChild(summaryBlock());
       var tb = tasksBlock();
       if (tb) panel.appendChild(tb);

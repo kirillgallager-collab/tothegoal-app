@@ -33,6 +33,7 @@
 
 /* Простой интерфейс; цвета и шрифт — токены из css/theme.css (экраны в дизайне v8 — шаг 5 плана). */
 * { box-sizing: border-box; }
+:root { --sab: max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px)); } /* нижний запас iPhone: системный и Telegram */
 /* Страница не должна ездить вбок внутри Mini App; двойной тап не приближает экран (iOS) */
 html { overflow-x: hidden; max-width: 100%; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
 body {
@@ -68,10 +69,13 @@ label.check span, label.check strong { min-width: 0; font-size: 14px; line-heigh
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 [hidden] { display: none !important; }
 /* Меню-пилюля (design-preview .nav/.tab): закреплена внизу, не прокручивается; скрыта при клавиатуре (body.kbd, app.js) */
-nav.tabs { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 5; display: flex; gap: 4px; height: 64px; padding: 6px;
+nav.tabs { position: fixed; left: 12px; right: 12px; bottom: calc(12px + var(--sab)); z-index: 5; display: flex; gap: 4px; height: 64px; padding: 6px;
   border-radius: 99px; background: var(--card); border: 1px solid var(--line); }
 body.kbd nav.tabs { display: none; }
-#app.has-menu { padding-bottom: calc(64px + 36px + env(safe-area-inset-bottom, 0px)); } /* содержимое не прячется под меню */
+/* полоса фона под пилюлей (z-index -1 внутри контекста nav): прокручиваемый текст не виден в зазоре под меню */
+nav.tabs::after { content: ""; position: fixed; left: 0; right: 0; bottom: 0; height: calc(12px + var(--sab)); background: var(--bg); z-index: -1; }
+/* содержимое не прячется под меню: высота меню 64 + отступ снизу 12 + запас 32 + safe area */
+#app.has-menu { padding-bottom: calc(64px + 12px + 32px + var(--sab)); }
 body.kbd #app.has-menu { padding-bottom: 0; }
 /* 4 пункта делят ширину поровну: min-width:0, чтобы «Настройки» не выезжало за 375 px */
 nav.tabs button { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 2px;
@@ -189,6 +193,11 @@ label.task, .task .tcell { display: flex; flex: 1; min-width: 0; gap: 16px; alig
 /* строки-кнопки (дни среза): .rows .row — чтобы не задеть .row форм и степпера */
 .rows .row { display: flex; flex-wrap: nowrap; align-items: center; gap: 12px; width: 100%; min-height: 0; padding: 14px 0; border: 0; border-radius: 0; background: none; color: var(--text); font: inherit; text-align: left; }
 .rows .row + .row { border-top: 1px solid var(--line); }
+/* M-1: карточка пресета — строка, под ней предупреждение и ссылка; карточки разделены линией */
+.pcard + .pcard { border-top: 1px solid var(--line); }
+.pcard .row { padding-bottom: 8px; }
+.pcard .small, .pcard .hint { margin: 0 0 12px; }
+a.link { display: inline-block; margin: 0 0 12px; padding: 4px 0; color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
 .row-main { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .rows .row .v { flex: none; color: var(--muted); text-align: right; }
 .hrow { display: block; width: 100%; min-height: 0; padding: 16px 0; border: 0; border-radius: 0; background: none; color: var(--text); font: inherit; text-align: left; }
